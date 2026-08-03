@@ -1,0 +1,157 @@
+# Resume Matchmaker — Docker Compose stack (app + MySQL + Redis + MinIO).
+#
+# Usage:
+#   cp .env.docker.example .env.docker
+#   # edit .env.docker — set DATABASE_URL, NEXTAUTH_SECRET, ADMIN_SECRET, etc.
+#   docker compose up -d
+#   docker compose logs -f app
+#
+# To swap the Prisma datasource from SQLite (the dev default) to MySQL,
+# change `provider = "sqlite"` to `provider = "mysql"` in
+# `prisma/schema.prisma`, then run `bunx prisma migrate deploy` against the
+# MySQL container. See docs/DEPLOYMENT.md for the full migration recipe.
+#
+# The app's CacheService (src/lib/cache.ts) is in-memory by default. To use
+# Redis, set REDIS_URL — the app auto-detects it for the /api/health
+# `cache` field, and the in-memory implementation can be swapped for an
+# ioredis-backed one (interface-compatible).
+#
+# The app's StorageService (src/lib/storage.ts) writes to local disk by
+# default. To use S3/MinIO, set S3_* env vars and swap the implementation
+# (see docs/DEPLOYMENT.md).
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Pass NEXT_PUBLIC_* build args through from the env_file.
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
+        NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${NEXT_PUBLIC_FIREBASE_VAPID_KEY:-}
+    container_name: resume-matchmaker-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    environment:
+      # Override DATABASE_URL to point at the MySQL container (the value in
+      # .env.docker may be a SQLite file path used for local dev).
+      - DATABASE_URL=${DATABASE_URL:-mysql://matchmaker:matchmaker@mysql:3306/matchmaker}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - UPLOADS_DIR=/app/uploads
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - matchmaker-net
+
+  mysql:
+    image: mysql:8.0
+    container_name: resume-matchmaker-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpw-change-me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-matchmaker}
+      MYSQL_USER: ${MYSQL_USER:-matchmaker}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-matchmaker}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test:
+        - CMD
+        - mysqladmin
+        - ping
+        - -h
+        - localhost
+        - -u
+        - root
+        - -p${MYSQL_ROOT_PASSWORD:-rootpw-change-me}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - matchmaker-net
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: resume-matchmaker-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks:
+      - matchmaker-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: resume-matchmaker-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-matchmaker}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-matchmaker-secret}
+    volumes:
+      - minio-data:/data
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web console
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - matchmaker-net
+
+  # One-shot init container: create the S3 bucket on first run.
+  minio-init:
+    image: minio/mc:latest
+    container_name: resume-matchmaker-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-matchmaker} ${MINIO_ROOT_PASSWORD:-matchmaker-secret};
+        mc mb --ignore-existing local/${S3_BUCKET:-resumes};
+        mc anonymous set download local/${S3_BUCKET:-resumes} || true;
+    networks:
+      - matchmaker-net
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:
+  uploads:
+
+networks:
+  matchmaker-net:
+    driver: bridge

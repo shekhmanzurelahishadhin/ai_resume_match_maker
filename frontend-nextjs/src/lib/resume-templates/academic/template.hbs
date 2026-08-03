@@ -1,0 +1,54 @@
+{{! academic — citation-friendly format with numbered sections, dark gray serif }}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{contact.name}} — Curriculum Vitae</title>
+<style>
+{{{baseCss}}}
+:root {
+  --rm-color-primary: {{meta.colors.primary}};
+  --rm-color-accent: {{meta.colors.accent}};
+  --rm-color-text: {{meta.colors.text}};
+  --rm-font-heading: {{meta.fonts.heading}};
+  --rm-font-body: {{meta.fonts.body}};
+}
+body { font-size: 12px; line-height: 1.45; }
+.rm-page { padding: 40px 48px; }
+.rm-name {
+  font-size: 24px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #999;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+.rm-contact-links { justify-content: center; text-align: center; }
+.rm-section { margin-top: 18px; }
+.rm-section-title {
+  font-size: 13px;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid #999;
+  color: {{meta.colors.primary}};
+}
+.rm-exp-item { margin-bottom: 10px; }
+.rm-exp-position { font-style: italic; }
+.rm-bullets { margin-top: 4px; }
+.rm-skill-group { margin-bottom: 4px; }
+.rm-skill-cat { font-style: italic; }
+</style>
+</head>
+<body>
+<div class="rm-page">
+  {{> contactHeader}}
+  {{> summaryBlock}}
+  {{> educationList}}
+  {{> experienceList}}
+  {{> projectsList}}
+  {{> skillsList}}
+  {{> certificationsList}}
+</div>
+</body>
+</html>

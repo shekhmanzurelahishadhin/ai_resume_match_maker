@@ -1,0 +1,86 @@
+{{! technical — skills-forward layout, with a tech-stack grid at the top, cyan accent }}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{contact.name}} — Resume</title>
+<style>
+{{{baseCss}}}
+:root {
+  --rm-color-primary: {{meta.colors.primary}};
+  --rm-color-accent: {{meta.colors.accent}};
+  --rm-color-text: {{meta.colors.text}};
+  --rm-font-heading: {{meta.fonts.heading}};
+  --rm-font-body: {{meta.fonts.body}};
+}
+.rm-page { padding: 36px 40px; }
+.rm-name {
+  font-size: 26px;
+  font-family: {{meta.fonts.heading}};
+  color: {{meta.colors.primary}};
+  margin: 0;
+}
+.rm-tech-stack {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0 6px 0;
+  background: #ecfeff;
+  padding: 12px;
+  border-left: 4px solid {{meta.colors.primary}};
+}
+.rm-tech-stack-row { display: table-row; }
+.rm-tech-stack-label {
+  display: table-cell;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: {{meta.colors.primary}};
+  padding: 3px 12px 3px 0;
+  width: 110px;
+  vertical-align: top;
+}
+.rm-tech-stack-items {
+  display: table-cell;
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #1f2937;
+  padding: 3px 0;
+  vertical-align: top;
+}
+.rm-section-title {
+  font-family: {{meta.fonts.heading}};
+  color: {{meta.colors.primary}};
+  border-bottom: 1px solid {{meta.colors.primary}};
+}
+.rm-skill-cat {
+  font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: {{meta.colors.primary}};
+}
+</style>
+</head>
+<body>
+<div class="rm-page">
+  {{> contactHeader}}
+
+  {{#if skills.length}}
+  <section class="rm-section rm-tech-stack">
+    {{#each skills}}
+    <div class="rm-tech-stack-row">
+      <div class="rm-tech-stack-label">{{this.category}}</div>
+      <div class="rm-tech-stack-items">{{#each this.items}}{{this}}{{#unless @last}}  ·  {{/unless}}{{/each}}</div>
+    </div>
+    {{/each}}
+  </section>
+  {{/if}}
+
+  {{> summaryBlock}}
+  {{> experienceList}}
+  {{> projectsList}}
+  {{> educationList}}
+  {{> certificationsList}}
+</div>
+</body>
+</html>

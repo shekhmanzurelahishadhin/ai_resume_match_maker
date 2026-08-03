@@ -1,0 +1,54 @@
+# Resume Matchmaker — Docker Compose dev override.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# What this override does:
+#   - Replaces the built image with a hot-reload dev container.
+#   - Mounts the project source so file changes trigger Next.js HMR.
+#   - Skips the multi-stage build (uses `bun run dev` directly).
+#   - Shares the same MySQL / Redis / MinIO services as the production
+#     docker-compose.yml stack.
+#
+# Note: this requires the dev dependencies to be installed locally — the
+# container uses the host's node_modules via the bind mount.
+
+services:
+  app:
+    build:
+      # No build needed — we override the image + command.
+      dockerfile: Dockerfile.dev
+    image: resume-matchmaker:dev
+    container_name: resume-matchmaker-app-dev
+    # bun run dev starts Next.js in dev mode with HMR on port 3000.
+    command: bun run dev
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      # In dev we keep SQLite by default (the file lives in a volume so it
+      # survives container restarts). Comment out DATABASE_URL to use MySQL.
+      - DATABASE_URL=file:/app/db/custom.db
+      - UPLOADS_DIR=/app/uploads
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      # Bind-mount the entire project so HMR picks up file changes.
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - uploads-dev:/app/uploads
+      - dev-db:/app/db
+    ports:
+      - "3000:3000"
+      # Next.js dev server sometimes exposes a debug port.
+      - "9229:9229"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+volumes:
+  uploads-dev:
+  dev-db:

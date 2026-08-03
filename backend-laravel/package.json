@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "name": "resumematchmaker-backend-assets",
+    "description": "Laravel default Vite + Tailwind assets (API-first backend; assets optional).",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "devDependencies": {
+        "axios": "^1.7",
+        "laravel-vite-plugin": "^1.0",
+        "tailwindcss": "^3.4",
+        "vite": "^5.4"
+    }
+}

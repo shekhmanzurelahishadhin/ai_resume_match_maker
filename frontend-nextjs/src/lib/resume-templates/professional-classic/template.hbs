@@ -1,0 +1,60 @@
+{{! professional-classic — two-column with left sidebar (contact + skills), serif fonts, navy accent }}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{contact.name}} — Resume</title>
+<style>
+{{{baseCss}}}
+:root {
+  --rm-color-primary: {{meta.colors.primary}};
+  --rm-color-accent: {{meta.colors.accent}};
+  --rm-color-text: {{meta.colors.text}};
+  --rm-font-heading: {{meta.fonts.heading}};
+  --rm-font-body: {{meta.fonts.body}};
+}
+.rm-page { padding: 40px; }
+.rm-layout {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+.rm-sidebar {
+  display: table-cell;
+  width: 32%;
+  background: #f8fafc;
+  padding: 0 20px 20px 0;
+  border-right: 1px solid #e5e7eb;
+  vertical-align: top;
+}
+.rm-main {
+  display: table-cell;
+  padding-left: 20px;
+  vertical-align: top;
+}
+.rm-sidebar .rm-name { font-size: 22px; color: {{meta.colors.primary}}; }
+.rm-sidebar .rm-contact-links { flex-direction: column; gap: 4px; }
+.rm-sidebar .rm-section-title { border-bottom: none; color: {{meta.colors.primary}}; }
+.rm-sidebar .rm-skill-group { margin-bottom: 8px; }
+.rm-main .rm-section { margin-top: 18px; }
+.rm-main .rm-section:first-child { margin-top: 0; }
+</style>
+</head>
+<body>
+<div class="rm-page">
+  <div class="rm-layout">
+    <aside class="rm-sidebar">
+      {{> contactHeader}}
+      {{> skillsList}}
+      {{> certificationsList}}
+    </aside>
+    <main class="rm-main">
+      {{> summaryBlock}}
+      {{> experienceList}}
+      {{> educationList}}
+      {{> projectsList}}
+    </main>
+  </div>
+</div>
+</body>
+</html>

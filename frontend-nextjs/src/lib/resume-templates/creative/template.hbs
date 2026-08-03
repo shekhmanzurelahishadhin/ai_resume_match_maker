@@ -1,0 +1,59 @@
+{{! creative — bold accent header band, asymmetric layout, magenta accent }}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{{contact.name}} — Resume</title>
+<style>
+{{{baseCss}}}
+:root {
+  --rm-color-primary: {{meta.colors.primary}};
+  --rm-color-accent: {{meta.colors.accent}};
+  --rm-color-text: {{meta.colors.text}};
+  --rm-font-heading: {{meta.fonts.heading}};
+  --rm-font-body: {{meta.fonts.body}};
+}
+.rm-page { padding: 0; }
+.rm-creative-header {
+  background: {{meta.colors.primary}};
+  color: #ffffff;
+  padding: 36px 40px;
+}
+.rm-creative-header .rm-name { color: #ffffff; font-size: 34px; margin-bottom: 8px; }
+.rm-creative-header .rm-contact-links { color: #ffffff; }
+.rm-creative-header .rm-contact-links a { color: #ffffff; text-decoration: underline; }
+.rm-creative-body { padding: 30px 40px; }
+.rm-creative-two-col {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+.rm-creative-left { display: table-cell; width: 65%; padding-right: 24px; vertical-align: top; }
+.rm-creative-right { display: table-cell; width: 35%; background: #fdf4ff; padding: 0 0 16px 16px; vertical-align: top; border-left: 4px solid {{meta.colors.accent}}; }
+.rm-creative-right .rm-section { margin-top: 20px; padding-right: 16px; }
+.rm-creative-right .rm-section-title { color: {{meta.colors.primary}}; border-bottom: 2px solid {{meta.colors.accent}}; }
+.rm-creative-left .rm-section-title { color: {{meta.colors.primary}}; border-bottom: 2px solid {{meta.colors.accent}}; }
+</style>
+</head>
+<body>
+<div class="rm-page">
+  <div class="rm-creative-header">
+    {{> contactHeader}}
+  </div>
+  <div class="rm-creative-body">
+    <div class="rm-creative-two-col">
+      <div class="rm-creative-left">
+        {{> summaryBlock}}
+        {{> experienceList}}
+        {{> projectsList}}
+      </div>
+      <div class="rm-creative-right">
+        {{> skillsList}}
+        {{> educationList}}
+        {{> certificationsList}}
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
