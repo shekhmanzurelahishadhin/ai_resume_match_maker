@@ -2,10 +2,8 @@
 // Privacy: only the owner can view/edit. Defense-in-depth alongside middleware.
 
 import { notFound } from "next/navigation";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import {
   resumeContentSchema,
   customizationSchema,
@@ -16,24 +14,27 @@ import { EditorClient } from "./editor-client";
 
 export const dynamic = "force-dynamic";
 
+interface GeneratedResumeDetail {
+  id: string;
+  version: number;
+  contentJson: unknown;
+  customizationJson: unknown;
+  template: { id: string; slug: string; name: string };
+}
+
 export default async function EditGeneratedResumePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) notFound();
 
-  const r = await db.generatedResume.findUnique({
-    where: { id },
-    include: {
-      template: { select: { slug: true, name: true } },
-    },
-  });
+  // Ownership is enforced by the API policy; a 403/404 arrives here as null.
+  const payload = await apiGetOrNull<{ resume: GeneratedResumeDetail }>(
+    `resumes/generate/${id}`,
+  );
+  const r = payload?.resume;
   if (!r) notFound();
-  if (r.userId !== user.id) notFound();
 
   // Validate stored content. If it's malformed, fall back to an empty shell
   // (the user can still use the editor to rebuild).

@@ -4,16 +4,22 @@
 // injects it into an iframe that fills the viewport.
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { PreviewFrame } from "./preview-frame";
 
 export const dynamic = "force-dynamic";
+
+interface GeneratedResumeDetail {
+  id: string;
+  version: number;
+  contentJson: unknown;
+  customizationJson: unknown;
+  template: { id: string; slug: string; name: string };
+}
 
 export default async function FullScreenPreviewPage({
   params,
@@ -21,20 +27,13 @@ export default async function FullScreenPreviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) notFound();
 
-  const r = await db.generatedResume.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      userId: true,
-      template: { select: { name: true } },
-    },
-  });
+  // Ownership is enforced by the API policy; a 403/404 arrives here as null.
+  const payload = await apiGetOrNull<{ resume: GeneratedResumeDetail }>(
+    `resumes/generate/${id}`,
+  );
+  const r = payload?.resume;
   if (!r) notFound();
-  if (r.userId !== user.id) notFound();
 
   return (
     <div className="space-y-4">

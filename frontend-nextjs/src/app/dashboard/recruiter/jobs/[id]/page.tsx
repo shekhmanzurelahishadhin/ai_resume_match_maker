@@ -2,11 +2,9 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { ArrowLeft, Briefcase, Calendar, Pencil } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,24 +13,29 @@ import { CandidateList } from "@/components/candidate-list";
 
 export const dynamic = "force-dynamic";
 
+interface JobDetail {
+  id: string;
+  title: string;
+  description: string;
+  requiredSkills: string[];
+  isActive: boolean;
+  matchCount: number;
+  createdAt: string;
+}
+
 export default async function JobDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== "recruiter") notFound();
 
-  const job = await db.jobPost.findUnique({
-    where: { id },
-    include: { _count: { select: { matches: true } } },
-  });
+  // Ownership and role are enforced by the API's policy; a 403/404 lands here
+  // as null and renders the standard not-found page.
+  const job = await apiGetOrNull<JobDetail>(`jobs/${id}`);
   if (!job) notFound();
-  if (job.recruiterId !== user.id) notFound();
 
-  const requiredSkills = (job.requiredSkillsJson as { skills?: string[] })?.skills ?? [];
+  const requiredSkills = job.requiredSkills ?? [];
 
   return (
     <div className="space-y-6">
@@ -48,7 +51,7 @@ export default async function JobDetailPage({
             <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
               <Calendar className="size-3.5" />
               Posted {new Date(job.createdAt).toLocaleDateString()} ·{" "}
-              {job._count.matches} candidates
+              {job.matchCount} candidates
             </p>
           </div>
           <div className="flex items-center gap-2">

@@ -91,6 +91,10 @@ class AuthTest extends TestCase
             ->postJson('/api/logout')
             ->assertStatus(200);
 
+        // The guard caches the resolved user for the lifetime of the test
+        // process; a real second request would start clean, so drop it here.
+        $this->app['auth']->forgetGuards();
+
         // Re-using the same token should fail.
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/user')

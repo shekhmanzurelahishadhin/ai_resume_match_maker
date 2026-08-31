@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             ResumeTemplateSeeder::class,
+            JobPostSeeder::class,
         ]);
 
         // Create a demo seeker + recruiter for local dev (optional).

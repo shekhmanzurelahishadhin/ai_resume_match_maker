@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\GeneratedResumeController;
 use App\Http\Controllers\Api\JobController;
 use App\Http\Controllers\Api\MatchController;
@@ -38,12 +39,34 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth: logout
     Route::post('logout', [AuthController::class, 'logout']);
 
+    // Dashboard overview (role-aware stats + recent activity)
+    Route::get('dashboard', [DashboardController::class, 'index']);
+
     // Current user (profile, GDPR export, account deletion)
     Route::get('user', [UserController::class, 'show']);
     Route::get('users/me', [UserController::class, 'show']);
     Route::patch('users/me', [UserController::class, 'update']);
     Route::delete('users/me', [UserController::class, 'destroy']);
     Route::post('users/export-data', [UserController::class, 'exportData']);
+
+    // NOTE: these must be declared before `resumes/{resume}`, otherwise
+    // "generate" is captured as a resume id and 404s on model binding.
+    // Generated resumes (Phase 2 builder)
+    Route::get('resumes/generate', [GeneratedResumeController::class, 'index']);
+    Route::post('resumes/generate', [GeneratedResumeController::class, 'store'])
+        ->middleware('throttle.generations');
+    Route::get('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'show']);
+    Route::put('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'update']);
+    Route::patch('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'update']);
+    Route::delete('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'destroy']);
+    Route::get('resumes/generate/{generatedResume}/preview', [GeneratedResumeController::class, 'preview']);
+    Route::post('resumes/generate/{generatedResume}/export', [GeneratedResumeController::class, 'export']);
+    Route::post('resumes/generate/{generatedResume}/tailor', [GeneratedResumeController::class, 'tailor'])
+        ->middleware('throttle.generations');
+    Route::post('resumes/generate/{generatedResume}/enhance', [GeneratedResumeController::class, 'enhance'])
+        ->middleware('throttle.generations');
+    Route::get('resumes/generate/{generatedResume}/versions', [GeneratedResumeController::class, 'versions']);
+    Route::post('resumes/generate/{generatedResume}/versions/{version}/restore', [GeneratedResumeController::class, 'restore']);
 
     // Resumes (seeker-only upload; owner-scoped everything else)
     Route::get('resumes', [ResumeController::class, 'index']);
@@ -73,23 +96,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Templates
     Route::get('templates', [TemplateController::class, 'index']);
     Route::get('templates/{slug}', [TemplateController::class, 'show']);
-
-    // Generated resumes (Phase 2 builder)
-    Route::get('resumes/generate', [GeneratedResumeController::class, 'index']);
-    Route::post('resumes/generate', [GeneratedResumeController::class, 'store'])
-        ->middleware('throttle.generations');
-    Route::get('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'show']);
-    Route::put('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'update']);
-    Route::patch('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'update']);
-    Route::delete('resumes/generate/{generatedResume}', [GeneratedResumeController::class, 'destroy']);
-    Route::get('resumes/generate/{generatedResume}/preview', [GeneratedResumeController::class, 'preview']);
-    Route::post('resumes/generate/{generatedResume}/export', [GeneratedResumeController::class, 'export']);
-    Route::post('resumes/generate/{generatedResume}/tailor', [GeneratedResumeController::class, 'tailor'])
-        ->middleware('throttle.generations');
-    Route::post('resumes/generate/{generatedResume}/enhance', [GeneratedResumeController::class, 'enhance'])
-        ->middleware('throttle.generations');
-    Route::get('resumes/generate/{generatedResume}/versions', [GeneratedResumeController::class, 'versions']);
-    Route::post('resumes/generate/{generatedResume}/versions/{version}/restore', [GeneratedResumeController::class, 'restore']);
 
     // Notifications (Phase 3)
     Route::post('notifications/register-device', [NotificationController::class, 'registerDevice']);

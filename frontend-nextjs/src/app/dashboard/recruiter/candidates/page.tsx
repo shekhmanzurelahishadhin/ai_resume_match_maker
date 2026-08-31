@@ -2,13 +2,11 @@
 // Lists all of the recruiter's jobs in a sidebar and shows the CandidateList for the
 // selected job (defaults to the first/most-recent one).
 
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { Users, Briefcase } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull, type Paginated } from "@/lib/server-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,21 +15,23 @@ import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
+interface JobSummary {
+  id: string;
+  title: string;
+  isActive: boolean;
+  matchCount: number;
+}
+
 export default async function CandidatesPage({
   searchParams,
 }: {
   searchParams: Promise<{ job?: string }>;
 }) {
   const sp = await searchParams;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id || user.role !== "recruiter") notFound();
 
-  const jobs = await db.jobPost.findMany({
-    where: { recruiterId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { matches: true } } },
-  });
+  // The API scopes this to the signed-in recruiter's own jobs.
+  const page = await apiGetOrNull<Paginated<JobSummary>>("jobs?pageSize=100");
+  const jobs = page?.items ?? [];
 
   if (jobs.length === 0) {
     return (
@@ -94,7 +94,7 @@ export default async function CandidatesPage({
                       <p className="font-medium truncate">{j.title}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-2">
                         <Users className="size-3" />
-                        {j._count.matches} candidates
+                        {j.matchCount} candidates
                         {!j.isActive ? (
                           <Badge variant="outline" className="bg-muted text-muted-foreground ml-auto">
                             Closed

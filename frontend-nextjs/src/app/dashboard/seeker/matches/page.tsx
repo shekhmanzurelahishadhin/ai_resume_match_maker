@@ -27,7 +27,7 @@ interface MatchRow {
   job: {
     id: string;
     title: string;
-    recruiter?: { id: string; name: string };
+    recruiterName?: string | null;
   };
 }
 
@@ -80,7 +80,7 @@ export default function SeekerMatchesPage() {
       out = out.filter(
         (r) =>
           r.job.title.toLowerCase().includes(q) ||
-          r.job.recruiter?.name.toLowerCase().includes(q),
+          r.job.recruiterName?.toLowerCase().includes(q),
       );
     }
     out.sort((a, b) => {
@@ -203,7 +203,7 @@ export default function SeekerMatchesPage() {
                         ) : null}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {m.job.recruiter?.name ?? "—"}
+                        {m.job.recruiterName ?? "—"}
                       </td>
                       <td className="px-4 py-3 w-40">
                         <div className="flex items-center gap-2">

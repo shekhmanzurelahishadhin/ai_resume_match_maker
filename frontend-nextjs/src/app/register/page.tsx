@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type Role = "seeker" | "recruiter";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const search = useSearchParams();
   const initialRole = (search.get("role") as Role) === "recruiter" ? "recruiter" : "seeker";
@@ -201,5 +201,15 @@ export default function RegisterPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+// useSearchParams() opts the subtree into client-side rendering, so it has to
+// sit inside a Suspense boundary or the static prerender of this route fails.
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }

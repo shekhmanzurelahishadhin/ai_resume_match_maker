@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Enums\MatchSource;
+use App\Services\Concerns\AiFallbacks;
+use App\Services\Contracts\AiService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -18,8 +19,10 @@ use Illuminate\Support\Str;
  * Retry policy: 3 attempts with exponential backoff (base 2s). All fallback
  * triggers are logged as structured JSON lines.
  */
-class HuggingFaceService
+class HuggingFaceService implements AiService
 {
+    use AiFallbacks;
+
     private Client $client;
     private bool $hasKey;
     private int $retryAttempts;
@@ -307,119 +310,23 @@ class HuggingFaceService
         return AiResult::ai($cleaned);
     }
 
-    // ---------- fallback implementations ----------
-
     /**
-     * TF-IDF cosine similarity (with IDF approximated to 1 — the cosine of
-     * two L2-normalized TF vectors is still a meaningful overlap signal).
+     * Turn raw resume text into structured builder content.
+     *
+     * The Hugging Face task pipelines cannot do reliable structured extraction,
+     * so this always takes the heuristic path. Configure a Groq key (or set
+     * AI_PROVIDER=groq) for the AI-quality parse.
+     *
+     * @return AiResult<array<string, mixed>>
      */
-    public function tfidfCosine(string $a, string $b): float
+    public function extractResumeContent(string $text): AiResult
     {
-        $va = $this->tfVector($this->tokenize($a));
-        $vb = $this->tfVector($this->tokenize($b));
-        if (empty($va) || empty($vb)) {
-            return 0.0;
-        }
-        // Iterate over the smaller vector for speed.
-        [$small, $large] = count($va) <= count($vb) ? [$va, $vb] : [$vb, $va];
-        $dot = 0.0;
-        foreach ($small as $token => $weight) {
-            if (isset($large[$token])) {
-                $dot += $weight * $large[$token];
-            }
-        }
-        return max(0.0, min(1.0, $dot));
-    }
+        $this->logFallback('extractResumeContent', 'no structured-extraction pipeline on this provider');
 
-    /**
-     * @param list<string> $skills
-     */
-    public function templateSummary(string $role, array $skills, int $experienceYears): string
-    {
-        $role = $role !== '' ? $role : 'professional';
-        $skillStr = count($skills) > 0 ? ' Skilled in '.implode(', ', array_slice($skills, 0, 5)).'.' : '';
-        $expStr = $experienceYears > 0
-            ? sprintf(' %d+ years of experience delivering measurable impact.', $experienceYears)
-            : ' Proven track record of delivering measurable impact.';
-        return sprintf('%s with a focus on quality and collaboration.%s%s', ucfirst($role), $skillStr, $expStr);
-    }
-
-    public function ruleBasedEnhance(string $text): string
-    {
-        // Capitalize the first letter; ensure it starts with an action verb.
-        $actionVerbs = ['Led', 'Built', 'Shipped', 'Improved', 'Designed', 'Implemented',
-            'Optimized', 'Reduced', 'Increased', 'Launched', 'Created', 'Drove', 'Spearheaded'];
-        $text = trim($text);
-        if ($text === '') return '';
-        $first = substr($text, 0, 1);
-        if (ctype_lower($first)) {
-            $text = strtoupper($first).substr($text, 1);
-        }
-        // If it doesn't start with an action verb-ish word, prepend "Delivered".
-        $firstWord = explode(' ', $text)[0] ?? '';
-        if (! in_array($firstWord, $actionVerbs, true) && ! preg_match('/^[A-Z][a-z]+ed$/', $firstWord)) {
-            // Heuristic: if it begins with "Responsible for" or "Worked on", rewrite.
-            if (preg_match('/^(responsible for|worked on|helped with|in charge of)\s+/i', $text)) {
-                $text = preg_replace('/^(responsible for|worked on|helped with|in charge of)\s+/i', '', $text, 1);
-                $text = 'Delivered '.$text;
-            }
-        }
-        // Ensure it ends with a period.
-        if (! str_ends_with($text, '.') && ! str_ends_with($text, '!')) {
-            $text .= '.';
-        }
-        return $text;
+        return AiResult::fallback($this->heuristicResumeContent(trim($text)));
     }
 
     // ---------- internals ----------
-
-    private const STOP_WORDS = [
-        'the','and','for','with','that','this','from','have','your','you','are','was',
-        'were','been','being','has','had','will','would','could','should','may','might',
-        'must','can','our','their','them','they','his','her','she','him','but','not','all',
-        'any','into','out','over','under','than','then','there','here','what','when','where',
-        'which','who','whom','whose','why','how','through','about','after','before','between',
-        'during','without','within','across','along','also','such','very','more','most','some',
-        'each','other','its','as','at','by','on','or','to','of','in','a','an','is','be','we','i',
-    ];
-
-    /**
-     * @return list<string>
-     */
-    private function tokenize(string $text): array
-    {
-        $lower = strtolower($text);
-        $tokens = preg_split('/[^a-z0-9+#.]+/', $lower) ?: [];
-        $out = [];
-        foreach ($tokens as $t) {
-            $t = trim($t);
-            if (strlen($t) >= 2 && ! in_array($t, self::STOP_WORDS, true)) {
-                $out[] = $t;
-            }
-        }
-        return $out;
-    }
-
-    /**
-     * @param list<string> $tokens
-     * @return array<string, float>
-     */
-    private function tfVector(array $tokens): array
-    {
-        if (empty($tokens)) return [];
-        $counts = [];
-        foreach ($tokens as $t) {
-            $counts[$t] = ($counts[$t] ?? 0) + 1;
-        }
-        // L2 normalize.
-        $norm = 0.0;
-        foreach ($counts as $c) $norm += $c * $c;
-        $norm = sqrt($norm) ?: 1.0;
-        foreach ($counts as $k => $c) {
-            $counts[$k] = $c / $norm;
-        }
-        return $counts;
-    }
 
     /**
      * @param callable(): mixed $fn
@@ -449,13 +356,4 @@ class HuggingFaceService
         return RetryResult::fail($lastError);
     }
 
-    private function logFallback(string $operation, string $reason, array $extra = []): void
-    {
-        Log::warning(json_encode(array_merge([
-            'level' => 'warn',
-            'event' => 'ai_fallback',
-            'operation' => $operation,
-            'reason' => $reason,
-        ], $extra)));
-    }
 }

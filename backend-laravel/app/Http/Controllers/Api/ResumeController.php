@@ -10,6 +10,7 @@ use App\Http\Resources\MatchResource;
 use App\Http\Resources\ResumeListResource;
 use App\Http\Resources\ResumeResource;
 use App\Jobs\ParseResumeAndMatch;
+use App\Models\JobMatch;
 use App\Models\Resume;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
@@ -28,7 +29,9 @@ class ResumeController extends Controller
         $user = $request->user();
         ['page' => $page, 'pageSize' => $pageSize] = $this->parsePagination($request, 15);
 
-        $query = Resume::where('user_id', $user->id)->orderByDesc('created_at');
+        $query = Resume::where('user_id', $user->id)
+            ->withCount('matches')
+            ->orderByDesc('created_at');
         $total = $query->count();
         $items = $query->skip(($page - 1) * $pageSize)->take($pageSize)->get();
 
@@ -111,7 +114,7 @@ class ResumeController extends Controller
         ['page' => $page, 'pageSize' => $pageSize] = $this->parsePagination($request, 15);
 
         $query = JobMatch::where('resume_id', $resume->id)
-            ->with('jobPost:id,title')
+            ->with(['jobPost:id,title,recruiter_id', 'jobPost.recruiter:id,name'])
             ->orderByDesc('match_percentage');
         $total = $query->count();
         $items = $query->skip(($page - 1) * $pageSize)->take($pageSize)->get();

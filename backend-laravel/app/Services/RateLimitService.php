@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\RateLimitBucket;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -23,15 +24,36 @@ class RateLimitService
 {
     public function consume(string $key, int $max, int $windowSeconds): RateLimitOutcome
     {
+        try {
+            return $this->attempt($key, $max, $windowSeconds);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent request inserted the bucket between our read and our
+            // insert. The row exists now, so the retry takes the update path.
+            return $this->attempt($key, $max, $windowSeconds);
+        }
+    }
+
+    private function attempt(string $key, int $max, int $windowSeconds): RateLimitOutcome
+    {
         return DB::transaction(function () use ($key, $max, $windowSeconds) {
             $bucket = RateLimitBucket::where('key', $key)->lockForUpdate()->first();
 
-            if (! $bucket || $bucket->window_end->isPast()) {
-                $bucket = RateLimitBucket::create([
+            if ($bucket === null) {
+                RateLimitBucket::create([
                     'key' => $key,
                     'count' => 1,
                     'window_end' => now()->addSeconds($windowSeconds),
                 ]);
+                return RateLimitOutcome::allowed($max, 1, $windowSeconds);
+            }
+
+            if ($bucket->window_end->isPast()) {
+                // Start a fresh window on the existing row. `key` is unique, so
+                // an expired bucket has to be updated, never re-inserted.
+                $bucket->forceFill([
+                    'count' => 1,
+                    'window_end' => now()->addSeconds($windowSeconds),
+                ])->save();
                 return RateLimitOutcome::allowed($max, 1, $windowSeconds);
             }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Notification\RegisterDeviceRequest;
 use App\Http\Requests\Notification\UpdatePreferencesRequest;
+use App\Http\Resources\NotificationPreferenceResource;
 use App\Http\Resources\NotificationResource;
 use App\Jobs\SendDailyDigest;
 use App\Models\DeviceToken;
@@ -98,7 +99,7 @@ class NotificationController extends Controller
     public function preferences(Request $request): JsonResponse
     {
         $prefs = NotificationPreference::getOrCreateFor($request->user());
-        return $this->ok(['preferences' => $prefs]);
+        return $this->ok(['preferences' => NotificationPreferenceResource::make($prefs)]);
     }
 
     public function updatePreferences(UpdatePreferencesRequest $request): JsonResponse
@@ -114,7 +115,7 @@ class NotificationController extends Controller
         }
         $prefs->save();
 
-        return $this->ok(['preferences' => $prefs->fresh()]);
+        return $this->ok(['preferences' => NotificationPreferenceResource::make($prefs->fresh())]);
     }
 
     public function digestRun(Request $request): JsonResponse

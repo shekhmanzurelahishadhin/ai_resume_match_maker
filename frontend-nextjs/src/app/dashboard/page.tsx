@@ -1,7 +1,9 @@
 // Dashboard overview — stat cards + recent activity, role-aware.
+//
+// Data comes from the Laravel `GET /api/dashboard` endpoint, which computes the
+// aggregates server-side and returns the shape this page renders.
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import {
   FileText,
   Target,
@@ -11,8 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,34 +22,71 @@ import { EmptyState } from "@/components/empty-state";
 
 export const dynamic = "force-dynamic";
 
+interface RecruiterOverview {
+  role: "recruiter";
+  stats: {
+    jobCount: number;
+    activeJobCount: number;
+    candidateCount: number;
+    topMatchPercentage: number;
+  };
+  recentJobs: Array<{
+    id: string;
+    title: string;
+    isActive: boolean;
+    candidateCount: number;
+    createdAt: string | null;
+  }>;
+}
+
+interface SeekerOverview {
+  role: "seeker";
+  stats: {
+    resumeCount: number;
+    matchCount: number;
+    avgMatchPercentage: number;
+  };
+  recentResumes: Array<{
+    id: string;
+    fileName: string;
+    status: string;
+    matchCount: number;
+    createdAt: string | null;
+  }>;
+  topMatches: Array<{
+    id: string;
+    matchPercentage: number;
+    matchSource: string;
+    analyzedAt: string | null;
+    jobPost: {
+      id: string | null;
+      title: string | null;
+      recruiterName: string | null;
+    };
+  }>;
+}
+
+type Overview = RecruiterOverview | SeekerOverview;
+
+function formatDate(value: string | null): string {
+  return value ? new Date(value).toLocaleDateString() : "—";
+}
+
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id) return null;
+  const overview = await apiGetOrNull<Overview>("dashboard");
 
-  const isRecruiter = user.role === "recruiter";
+  if (!overview) {
+    return (
+      <EmptyState
+        icon={TrendingUp}
+        title="Dashboard unavailable"
+        description="We couldn't load your overview. Check that the API is running, then refresh."
+      />
+    );
+  }
 
-  if (isRecruiter) {
-    const [jobs, totalCandidates, topMatchAgg] = await Promise.all([
-      db.jobPost.findMany({
-        where: { recruiterId: user.id },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        include: { _count: { select: { matches: true } } },
-      }),
-      db.match.count({
-        where: { recruiterId: user.id },
-      }),
-      db.match.aggregate({
-        where: { recruiterId: user.id },
-        _max: { matchPercentage: true },
-      }),
-    ]);
-
-    const topMatchPct = topMatchAgg._max.matchPercentage ?? 0;
-    const activeJobs = await db.jobPost.count({
-      where: { recruiterId: user.id, isActive: true },
-    });
+  if (overview.role === "recruiter") {
+    const { stats, recentJobs } = overview;
 
     return (
       <div className="space-y-6">
@@ -67,13 +105,13 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Briefcase} label="Total jobs" value={jobs.length} accent="emerald" />
-          <StatCard icon={Briefcase} label="Active jobs" value={activeJobs} accent="teal" />
-          <StatCard icon={Users} label="Candidates" value={totalCandidates} accent="amber" />
+          <StatCard icon={Briefcase} label="Total jobs" value={stats.jobCount} accent="emerald" />
+          <StatCard icon={Briefcase} label="Active jobs" value={stats.activeJobCount} accent="teal" />
+          <StatCard icon={Users} label="Candidates" value={stats.candidateCount} accent="amber" />
           <StatCard
             icon={TrendingUp}
             label="Top match"
-            value={`${Math.round(topMatchPct)}%`}
+            value={`${Math.round(stats.topMatchPercentage)}%`}
             accent="emerald"
           />
         </div>
@@ -83,7 +121,7 @@ export default async function DashboardPage() {
             <CardTitle className="text-base">Recent jobs</CardTitle>
           </CardHeader>
           <CardContent>
-            {jobs.length === 0 ? (
+            {recentJobs.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
                 title="No jobs posted yet"
@@ -93,7 +131,7 @@ export default async function DashboardPage() {
               />
             ) : (
               <ul className="divide-y">
-                {jobs.map((job) => (
+                {recentJobs.map((job) => (
                   <li key={job.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <Link
@@ -103,9 +141,9 @@ export default async function DashboardPage() {
                         {job.title}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {job._count.matches} candidates ·{" "}
+                        {job.candidateCount} candidates ·{" "}
                         {job.isActive ? "Active" : "Closed"} ·{" "}
-                        {new Date(job.createdAt).toLocaleDateString()}
+                        {formatDate(job.createdAt)}
                       </p>
                     </div>
                     <Button asChild size="sm" variant="outline">
@@ -122,29 +160,7 @@ export default async function DashboardPage() {
   }
 
   // ----- Seeker overview -----
-  const [resumes, matches, avgAgg] = await Promise.all([
-    db.resume.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { _count: { select: { matches: true } } },
-    }),
-    db.match.findMany({
-      where: { resume: { userId: user.id } },
-      orderBy: { matchPercentage: "desc" },
-      take: 5,
-      include: { jobPost: { select: { id: true, title: true, recruiter: { select: { name: true } } } } },
-    }),
-    db.match.aggregate({
-      where: { resume: { userId: user.id } },
-      _avg: { matchPercentage: true },
-    }),
-  ]);
-
-  const avgMatchPct = avgAgg._avg.matchPercentage ?? 0;
-  const totalMatches = await db.match.count({
-    where: { resume: { userId: user.id } },
-  });
+  const { stats, recentResumes, topMatches } = overview;
 
   return (
     <div className="space-y-6">
@@ -163,12 +179,12 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon={FileText} label="My resumes" value={resumes.length} accent="emerald" />
-        <StatCard icon={Target} label="Matches" value={totalMatches} accent="teal" />
+        <StatCard icon={FileText} label="My resumes" value={stats.resumeCount} accent="emerald" />
+        <StatCard icon={Target} label="Matches" value={stats.matchCount} accent="teal" />
         <StatCard
           icon={TrendingUp}
           label="Avg match"
-          value={`${Math.round(avgMatchPct)}%`}
+          value={`${Math.round(stats.avgMatchPercentage)}%`}
           accent="amber"
         />
       </div>
@@ -182,7 +198,7 @@ export default async function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            {resumes.length === 0 ? (
+            {recentResumes.length === 0 ? (
               <EmptyState
                 icon={FileText}
                 title="No resumes yet"
@@ -190,7 +206,7 @@ export default async function DashboardPage() {
               />
             ) : (
               <ul className="divide-y">
-                {resumes.map((r) => (
+                {recentResumes.map((r) => (
                   <li key={r.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <Link
@@ -200,8 +216,7 @@ export default async function DashboardPage() {
                         {r.fileName}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {r._count.matches} matches · {r.status} ·{" "}
-                        {new Date(r.createdAt).toLocaleDateString()}
+                        {r.matchCount} matches · {r.status} · {formatDate(r.createdAt)}
                       </p>
                     </div>
                     <Button asChild size="sm" variant="outline">
@@ -222,7 +237,7 @@ export default async function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            {matches.length === 0 ? (
+            {topMatches.length === 0 ? (
               <EmptyState
                 icon={Target}
                 title="No matches yet"
@@ -230,15 +245,12 @@ export default async function DashboardPage() {
               />
             ) : (
               <ul className="divide-y">
-                {matches.map((m) => (
+                {topMatches.map((m) => (
                   <li key={m.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {m.jobPost.title}
-                      </p>
+                      <p className="text-sm font-medium truncate">{m.jobPost.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {m.jobPost.recruiter?.name} ·{" "}
-                        {new Date(m.analyzedAt).toLocaleDateString()}
+                        {m.jobPost.recruiterName} · {formatDate(m.analyzedAt)}
                       </p>
                       <div className="mt-1 flex items-center gap-1.5">
                         <AiSourceBadge source={m.matchSource} />

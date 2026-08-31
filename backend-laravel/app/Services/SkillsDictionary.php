@@ -426,7 +426,9 @@ class SkillsDictionary
             if ($skill['normalized'] === '') {
                 continue;
             }
-            if (str_contains($flat, $skill['normalized'])) {
+            // Boundary-anchored: without the surrounding spaces a one-letter
+            // label like "R" or "C" matches inside any word that contains it.
+            if (str_contains($flat, ' '.$skill['normalized'].' ')) {
                 $found[$skill['raw']] = $skill['category'] ?? self::CATEGORY_TECHNICAL;
             }
         }
@@ -504,14 +506,36 @@ class SkillsDictionary
         ];
     }
 
-    private static function normalize(string $label): string
+    /**
+     * Canonical comparison form, applied identically to dictionary labels and
+     * to resume text so the two always line up.
+     *
+     * Keeps `+` and `#` so "C++" and "C#" stay distinct from "C", and keeps a
+     * `.` only when it sits between two alphanumerics, so "Node.js" survives
+     * while a sentence-ending "native." does not.
+     */
+    private static function canonicalize(string $value): string
     {
-        return preg_replace('/[^a-z0-9]+/', '', strtolower($label)) ?? '';
+        $out = strtolower($value);
+        $out = preg_replace('/[^a-z0-9+#.]+/', ' ', $out) ?? '';
+        $out = preg_replace('/(?<![a-z0-9])\.+|\.+(?![a-z0-9])/', '', $out) ?? '';
+        $out = preg_replace('/\s+/', ' ', $out) ?? '';
+
+        return trim($out);
     }
 
+    private static function normalize(string $label): string
+    {
+        return self::canonicalize($label);
+    }
+
+    /**
+     * Resume text canonicalized and padded with a space at each end, so callers
+     * can match on " skill " and get word boundaries.
+     */
     private static function flatten(string $text): string
     {
-        return preg_replace('/[^a-z0-9]+/', ' ', strtolower($text)) ?? '';
+        return ' '.self::canonicalize($text).' ';
     }
 
     /**

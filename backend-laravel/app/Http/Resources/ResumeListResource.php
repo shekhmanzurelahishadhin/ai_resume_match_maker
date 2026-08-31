@@ -20,6 +20,7 @@ class ResumeListResource extends JsonResource
             'fileName' => $this->file_name,
             'fileSizeBytes' => $this->file_size_bytes,
             'skillsCount' => count($skills['skills'] ?? []),
+            'matchCount' => (int) ($this->matches_count ?? $this->matches()->count()),
             'experienceYears' => $this->experience_years,
             'status' => $this->status instanceof \App\Enums\ResumeStatus ? $this->status->value : (string) $this->status,
             'parseError' => $this->parse_error,

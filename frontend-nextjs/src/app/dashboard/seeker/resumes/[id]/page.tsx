@@ -3,11 +3,9 @@
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { ArrowLeft, FileText, Target, Clock } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull, type Paginated } from "@/lib/server-api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,8 +13,32 @@ import { SkillBadge } from "@/components/skill-badge";
 import { AiSourceBadge } from "@/components/ai-source-badge";
 import { EmptyState } from "@/components/empty-state";
 import { ResumeStatusBadge } from "@/components/resume-status-badge";
+import { ResumeStatusWatcher } from "@/components/resume-status-watcher";
 
 export const dynamic = "force-dynamic";
+
+interface ResumeDetail {
+  id: string;
+  fileName: string;
+  fileSizeBytes: number;
+  experienceYears: number | null;
+  status: "pending" | "parsing" | "ready" | "failed";
+  parseError: string | null;
+  createdAt: string;
+  skills: string[];
+  skillCategories: Record<string, string[]>;
+  skillsSource: "ai" | "fallback";
+}
+
+interface ResumeMatch {
+  id: string;
+  matchPercentage: number;
+  matchSource: string;
+  matchedSkills: string[];
+  missingSkills: string[];
+  analyzedAt: string | null;
+  job?: { id: string; title: string; recruiterName: string | null };
+}
 
 const CATEGORY_LABELS: Record<string, string> = {
   Technical: "Technical",
@@ -32,39 +54,20 @@ export default async function ResumeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) return null;
 
-  const resume = await db.resume.findUnique({
-    where: { id },
-    include: {
-      matches: {
-        orderBy: { matchPercentage: "desc" },
-        include: {
-          jobPost: {
-            select: {
-              id: true,
-              title: true,
-              recruiter: { select: { id: true, name: true } },
-            },
-          },
-        },
-      },
-    },
-  });
+  // Ownership is enforced by the API policy; a 403/404 arrives here as null.
+  const [detail, matchPage] = await Promise.all([
+    apiGetOrNull<{ resume: ResumeDetail }>(`resumes/${id}`),
+    apiGetOrNull<Paginated<ResumeMatch>>(`resumes/${id}/matches?pageSize=100`),
+  ]);
 
+  const resume = detail?.resume;
   if (!resume) notFound();
-  if (resume.userId !== user.id) notFound();
 
-  const skillsJson = resume.skillsJson as {
-    skills?: string[];
-    categories?: Record<string, string[]>;
-    _source?: "ai" | "fallback";
-  } | null;
-  const skills = skillsJson?.skills ?? [];
-  const categories = skillsJson?.categories ?? {};
-  const skillSource = skillsJson?._source ?? "fallback";
+  const matches = matchPage?.items ?? [];
+  const skills = resume.skills ?? [];
+  const categories = resume.skillCategories ?? {};
+  const skillSource = resume.skillsSource ?? "fallback";
 
   return (
     <div className="space-y-6">
@@ -84,6 +87,7 @@ export default async function ResumeDetailPage({
             </p>
           </div>
           <ResumeStatusBadge status={resume.status} error={resume.parseError} />
+          <ResumeStatusWatcher resumeId={resume.id} status={resume.status} />
         </div>
       </div>
 
@@ -135,7 +139,7 @@ export default async function ResumeDetailPage({
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Matches</p>
-              <p className="font-semibold">{resume.matches.length}</p>
+              <p className="font-semibold">{matches.length}</p>
             </div>
           </CardContent>
         </Card>
@@ -192,7 +196,7 @@ export default async function ResumeDetailPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {resume.matches.length === 0 ? (
+          {matches.length === 0 ? (
             <EmptyState
               icon={Target}
               title="No matches yet"
@@ -200,16 +204,18 @@ export default async function ResumeDetailPage({
             />
           ) : (
             <ul className="divide-y">
-              {resume.matches.map((m) => (
+              {matches.map((m) => (
                 <li key={m.id} className="py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {m.jobPost.title}
+                        {m.job?.title}
                       </p>
                       <p className="text-xs text-muted-foreground truncate">
-                        {m.jobPost.recruiter?.name} ·{" "}
-                        {new Date(m.analyzedAt).toLocaleDateString()}
+                        {m.job?.recruiterName} ·{" "}
+                        {m.analyzedAt
+                          ? new Date(m.analyzedAt).toLocaleDateString()
+                          : "—"}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
@@ -220,13 +226,12 @@ export default async function ResumeDetailPage({
                     </div>
                   </div>
                   <Progress value={m.matchPercentage} className="h-1.5 mt-2" />
-                  {(m.matchedSkillsJson as { skills?: string[] })?.skills?.length ||
-                  (m.missingSkillsJson as { skills?: string[] })?.skills?.length ? (
+                  {m.matchedSkills.length || m.missingSkills.length ? (
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {((m.matchedSkillsJson as { skills?: string[] })?.skills ?? []).slice(0, 6).map((s) => (
+                      {m.matchedSkills.slice(0, 6).map((s) => (
                         <SkillBadge key={s} skill={s} variant="matched" />
                       ))}
-                      {((m.missingSkillsJson as { skills?: string[] })?.skills ?? []).slice(0, 4).map((s) => (
+                      {m.missingSkills.slice(0, 4).map((s) => (
                         <SkillBadge key={s} skill={s} variant="missing" />
                       ))}
                     </div>

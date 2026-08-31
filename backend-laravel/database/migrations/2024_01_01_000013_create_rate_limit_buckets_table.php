@@ -12,7 +12,9 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('key')->unique(); // e.g. 'resume_upload:user:<id>'
             $table->unsignedInteger('count')->default(0);
-            $table->timestamp('window_end');
+            // Explicit default: without one MySQL adds ON UPDATE CURRENT_TIMESTAMP
+            // to the first timestamp column and rewrites it on every update.
+            $table->timestamp('window_end')->useCurrent();
             $table->timestamps();
         });
     }

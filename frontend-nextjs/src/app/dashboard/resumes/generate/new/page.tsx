@@ -70,6 +70,9 @@ function NewResumePageInner() {
     onSuccess: (data) => {
       toast.success("Resume created. Start editing!");
       router.push(`/dashboard/resumes/generate/${data.resume.id}`);
+      // Drop the cached Resume Builder list so the new resume is there when
+      // the user navigates back to it.
+      router.refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });

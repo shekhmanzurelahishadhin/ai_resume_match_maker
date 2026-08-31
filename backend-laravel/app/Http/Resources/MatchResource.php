@@ -22,6 +22,9 @@ class MatchResource extends JsonResource
             'job' => $this->when($this->relationLoaded('jobPost'), fn () => [
                 'id' => $this->jobPost->id,
                 'title' => $this->jobPost->title,
+                'recruiterName' => $this->jobPost->relationLoaded('recruiter')
+                    ? $this->jobPost->recruiter?->name
+                    : null,
             ]),
             'resume' => $this->when($this->relationLoaded('resume'), fn () => [
                 'id' => $this->resume->id,

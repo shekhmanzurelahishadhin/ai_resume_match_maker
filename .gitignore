@@ -45,6 +45,7 @@ frontend-nextjs/prisma/generated/
 /backend-laravel/storage/framework/sessions/*
 /backend-laravel/storage/framework/views/*
 /backend-laravel/storage/logs/*
+/backend-laravel/storage/framework/testing/
 .phpunit.result.cache
 .phpunit.cache/
 

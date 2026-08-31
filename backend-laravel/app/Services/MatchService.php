@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\JobPost;
 use App\Models\JobMatch;
 use App\Models\Resume;
+use App\Services\Contracts\AiService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -22,7 +23,7 @@ use Illuminate\Support\Facades\Log;
 class MatchService
 {
     public function __construct(
-        private HuggingFaceService $hf,
+        private AiService $hf,
         private NotificationService $notifications,
     ) {}
 
@@ -38,6 +39,7 @@ class MatchService
         array $resumeSkills,
         string $jobText,
         array $jobRequiredSkills,
+        bool $useAi = true,
     ): MatchComputed {
         $key = $this->cacheKey($resumeText, $jobText);
         $cached = $this->readCache($key);
@@ -45,9 +47,16 @@ class MatchService
             return MatchComputed::fromArray($cached);
         }
 
-        $matchResult = $this->hf->matchResumeToJob($resumeText, $jobText);
-        $semanticSimilarity = (float) ($matchResult->result['similarity'] ?? 0.0);
-        $matchSource = $matchResult->source;
+        if ($useAi) {
+            $matchResult = $this->hf->matchResumeToJob($resumeText, $jobText);
+            $semanticSimilarity = (float) ($matchResult->result['similarity'] ?? 0.0);
+            $matchSource = $matchResult->source;
+        } else {
+            // Screened out as an unlikely match — the deterministic score is
+            // good enough and costs nothing.
+            $semanticSimilarity = $this->hf->tfidfCosine($resumeText, $jobText);
+            $matchSource = 'fallback';
+        }
 
         // Skills overlap: |resume ∩ job| / |job| (avoid div-by-zero).
         $resumeSet = array_map('strtolower', $resumeSkills);
@@ -83,6 +92,60 @@ class MatchService
         return $computed;
     }
 
+
+    /**
+     * Cheap score for a resume/job pair — the same 0.7/0.3 blend the final
+     * score uses, but with TF-IDF standing in for the AI similarity.
+     *
+     * @param list<string> $resumeSkills
+     * @param list<string> $jobRequiredSkills
+     */
+    private function cheapScore(
+        string $resumeText,
+        array $resumeSkills,
+        string $jobText,
+        array $jobRequiredSkills,
+    ): float {
+        $overlap = $this->skillsOverlap($resumeSkills, $jobRequiredSkills);
+
+        return 0.7 * $this->hf->tfidfCosine($resumeText, $jobText) + 0.3 * $overlap;
+    }
+
+    /**
+     * @param list<string> $resumeSkills
+     * @param list<string> $jobRequiredSkills
+     */
+    private function skillsOverlap(array $resumeSkills, array $jobRequiredSkills): float
+    {
+        if (count($jobRequiredSkills) === 0) {
+            return 0.5; // neutral — neither perfect nor zero
+        }
+        $have = array_map('strtolower', $resumeSkills);
+        $matched = array_filter(
+            $jobRequiredSkills,
+            fn (string $s) => in_array(strtolower($s), $have, true),
+        );
+
+        return count($matched) / count($jobRequiredSkills);
+    }
+
+    /**
+     * Keys of the highest-scoring pairs that are worth an AI call.
+     *
+     * @param array<string, float> $scores keyed by whatever id the caller loops on
+     * @return array<string, true>
+     */
+    private function pickAiCandidates(array $scores): array
+    {
+        $limit = max(0, (int) config('ai.match.ai_candidates', 20));
+        $floor = (float) config('ai.match.min_score', 0.02);
+
+        $eligible = array_filter($scores, fn (float $v) => $v >= $floor);
+        arsort($eligible);
+
+        return array_fill_keys(array_keys(array_slice($eligible, 0, $limit, true)), true);
+    }
+
     /**
      * Background-match a resume against every active job.
      * Idempotent: deletes existing matches for this resume before re-inserting.
@@ -105,6 +168,19 @@ class MatchService
             JobMatch::where('resume_id', $resume->id)->delete();
         });
 
+        // Screen first: score every job for free, then spend the AI budget on
+        // the strongest candidates only.
+        $scores = [];
+        foreach ($activeJobs as $job) {
+            $scores[$job->id] = $this->cheapScore(
+                $resume->extracted_text,
+                $resumeSkills,
+                "{$job->title}\n{$job->description}",
+                $job->required_skills,
+            );
+        }
+        $aiCandidates = $this->pickAiCandidates($scores);
+
         $created = 0;
         foreach ($activeJobs as $job) {
             $computed = $this->computeMatch(
@@ -112,18 +188,22 @@ class MatchService
                 $resumeSkills,
                 "{$job->title}\n{$job->description}",
                 $job->required_skills,
+                isset($aiCandidates[$job->id]),
             );
 
-            $match = JobMatch::create([
-                'resume_id' => $resume->id,
-                'job_post_id' => $job->id,
-                'recruiter_id' => $job->recruiter_id,
-                'match_percentage' => $computed->matchPercentage,
-                'match_source' => $computed->matchSource,
-                'matched_skills_json' => ['skills' => $computed->matchedSkills],
-                'missing_skills_json' => ['skills' => $computed->missingSkills],
-                'analyzed_at' => now(),
-            ]);
+            // updateOrCreate, not create: the opposite matching direction may
+            // be scoring the same pair concurrently, and the pair is unique.
+            $match = JobMatch::updateOrCreate(
+                ['resume_id' => $resume->id, 'job_post_id' => $job->id],
+                [
+                    'recruiter_id' => $job->recruiter_id,
+                    'match_percentage' => $computed->matchPercentage,
+                    'match_source' => $computed->matchSource,
+                    'matched_skills_json' => ['skills' => $computed->matchedSkills],
+                    'missing_skills_json' => ['skills' => $computed->missingSkills],
+                    'analyzed_at' => now(),
+                ],
+            );
 
             try {
                 $this->notifications->notifyNewMatch($match);
@@ -158,6 +238,19 @@ class MatchService
             JobMatch::where('job_post_id', $job->id)->delete();
         });
 
+        // Same screening in the other direction: a new job only gets AI-scored
+        // against the resumes that already look plausible.
+        $scores = [];
+        foreach ($readyResumes as $resume) {
+            $scores[$resume->id] = $this->cheapScore(
+                $resume->extracted_text ?? '',
+                $resume->skills_list,
+                $jobText,
+                $jobSkills,
+            );
+        }
+        $aiCandidates = $this->pickAiCandidates($scores);
+
         $created = 0;
         foreach ($readyResumes as $resume) {
             $computed = $this->computeMatch(
@@ -165,18 +258,22 @@ class MatchService
                 $resume->skills_list,
                 $jobText,
                 $jobSkills,
+                isset($aiCandidates[$resume->id]),
             );
 
-            $match = JobMatch::create([
-                'resume_id' => $resume->id,
-                'job_post_id' => $job->id,
-                'recruiter_id' => $job->recruiter_id,
-                'match_percentage' => $computed->matchPercentage,
-                'match_source' => $computed->matchSource,
-                'matched_skills_json' => ['skills' => $computed->matchedSkills],
-                'missing_skills_json' => ['skills' => $computed->missingSkills],
-                'analyzed_at' => now(),
-            ]);
+            // updateOrCreate, not create: the opposite matching direction may
+            // be scoring the same pair concurrently, and the pair is unique.
+            $match = JobMatch::updateOrCreate(
+                ['resume_id' => $resume->id, 'job_post_id' => $job->id],
+                [
+                    'recruiter_id' => $job->recruiter_id,
+                    'match_percentage' => $computed->matchPercentage,
+                    'match_source' => $computed->matchSource,
+                    'matched_skills_json' => ['skills' => $computed->matchedSkills],
+                    'missing_skills_json' => ['skills' => $computed->missingSkills],
+                    'analyzed_at' => now(),
+                ],
+            );
 
             try {
                 $this->notifications->notifyNewMatch($match);

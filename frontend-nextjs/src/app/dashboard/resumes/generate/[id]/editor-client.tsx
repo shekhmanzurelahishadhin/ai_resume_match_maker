@@ -77,6 +77,9 @@ export function EditorClient({
       toast.success("Resume deleted.");
       qc.invalidateQueries({ queryKey: ["generated"] });
       router.push("/dashboard/resumes/generate");
+      // The list is a server component and the router cache would otherwise
+      // replay the pre-delete render, leaving the deleted resume on screen.
+      router.refresh();
     },
     onError: (e: Error) => toast.error(e.message),
   });

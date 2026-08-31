@@ -6,6 +6,8 @@ use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use App\Jobs\ParseResumeAndMatch;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -47,6 +49,11 @@ class ResumeUploadTest extends TestCase
         $seeker = User::factory()->seeker()->create();
         Storage::fake('local');
 
+        // The suite runs the queue synchronously, so without faking it the
+        // parse job would execute inline and flip the status away from
+        // 'pending' before the response is asserted.
+        Queue::fake();
+
         // A real %PDF-magic-bytes PDF — create a minimal one.
         $pdfContent = "%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\nxref\n0 3\n0000000000 65535 f \ntrailer<</Size 3/Root 1 0 R>>\nstartxref\n0\n%%EOF";
 
@@ -58,5 +65,6 @@ class ResumeUploadTest extends TestCase
             ->assertJsonPath('data.resume.status', 'pending');
 
         $this->assertDatabaseHas('resumes', ['user_id' => $seeker->id]);
+        Queue::assertPushed(ParseResumeAndMatch::class);
     }
 }

@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Enums\ResumeStatus;
 use App\Models\Resume;
-use App\Services\HuggingFaceService;
+use App\Services\Contracts\AiService;
 use App\Services\MatchService;
 use App\Services\NotificationService;
 use App\Services\PdfParserService;
@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Log;
  *   1. Mark Resume.status='parsing'.
  *   2. Read the PDF bytes from StorageService.
  *   3. Extract text via PdfParserService.
- *   4. Extract skills via HuggingFaceService (with fallback).
+ *   4. Extract skills via the configured AiService (with fallback).
  *   5. Compute experience_years via MatchService::computeExperienceYears.
  *   6. Update Resume: status='ready' (or 'failed' with parse_error).
  *   7. Run MatchService::matchResumeAgainstAllJobs.
@@ -45,7 +45,7 @@ class ParseResumeAndMatch implements ShouldQueue
     public function handle(
         StorageService $storage,
         PdfParserService $pdfParser,
-        HuggingFaceService $hf,
+        AiService $hf,
         MatchService $matcher,
         NotificationService $notifications,
     ): void {

@@ -2,39 +2,42 @@
 // Lists the user's generated resumes + "New" button + template picker preview.
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { ArrowLeft, FileText, Plus, Wand2 } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 import { TemplatePicker } from "@/components/resume-builder/template-picker";
+import { DeleteResumeButton } from "@/components/resume-builder/delete-resume-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function GeneratedResumesPage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) return null;
+interface GeneratedResumeListItem {
+  id: string;
+  version: number;
+  versionCount: number;
+  updatedAt: string | null;
+  template: { id: string; slug: string; name: string };
+  originalResume: { id: string; fileName: string } | null;
+  contentJson: { contact?: { name?: string; email?: string } } | null;
+}
 
-  const [resumes, templates] = await Promise.all([
-    db.generatedResume.findMany({
-      where: { userId: user.id, isCurrent: true },
-      orderBy: { updatedAt: "desc" },
-      include: {
-        template: { select: { id: true, slug: true, name: true } },
-        originalResume: { select: { id: true, fileName: true } },
-        _count: { select: { versions: true } },
-      },
-    }),
-    db.resumeTemplate.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-      select: { id: true, slug: true, name: true, description: true },
-    }),
+interface TemplateListItem {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+}
+
+export default async function GeneratedResumesPage() {
+  const [generated, templateList] = await Promise.all([
+    apiGetOrNull<{ items: GeneratedResumeListItem[] }>("resumes/generate"),
+    apiGetOrNull<{ items: TemplateListItem[] }>("templates"),
   ]);
+
+  const resumes = generated?.items ?? [];
+  const templates = templateList?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -67,9 +70,7 @@ export default async function GeneratedResumesPage() {
           <h2 className="text-lg font-semibold mb-3">Your generated resumes</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {resumes.map((r) => {
-              const content = r.contentJson as {
-                contact?: { name?: string; email?: string };
-              };
+              const content = r.contentJson;
               const name = content?.contact?.name?.trim() || "Untitled";
               const email = content?.contact?.email?.trim() || "";
               return (
@@ -85,7 +86,7 @@ export default async function GeneratedResumesPage() {
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span>v{r.version}</span>
                       <span>·</span>
-                      <span>{r._count.versions} snapshot{r._count.versions === 1 ? "" : "s"}</span>
+                      <span>{r.versionCount} snapshot{r.versionCount === 1 ? "" : "s"}</span>
                       {r.originalResume && (
                         <>
                           <span>·</span>
@@ -103,6 +104,7 @@ export default async function GeneratedResumesPage() {
                       <Button asChild size="sm" variant="outline" className="h-7">
                         <Link href={`/dashboard/resumes/generate/${r.id}/versions`}>Versions</Link>
                       </Button>
+                      <DeleteResumeButton resumeId={r.id} resumeName={name} />
                     </div>
                   </CardContent>
                 </Card>

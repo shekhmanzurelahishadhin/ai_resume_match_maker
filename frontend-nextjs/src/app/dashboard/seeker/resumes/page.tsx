@@ -1,27 +1,20 @@
 // Seeker → My Resumes. Lists all of the user's resumes + an upload card.
 
-import { getServerSession } from "next-auth";
 import { FileText } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull, type Paginated } from "@/lib/server-api";
 import { ResumeUpload } from "@/components/resume-upload";
-import { ResumeCard } from "@/components/resume-card";
+import { ResumeCard, type ResumeCardData } from "@/components/resume-card";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
 export default async function SeekerResumesPage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) return null;
-
-  const resumes = await db.resume.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { matches: true } } },
-  });
+  const page = await apiGetOrNull<Paginated<ResumeCardData>>(
+    "resumes?pageSize=100",
+  );
+  const resumes = page?.items ?? [];
 
   return (
     <div className="space-y-6">

@@ -14,7 +14,7 @@ use App\Http\Resources\ResumeVersionResource;
 use App\Models\GeneratedResume;
 use App\Models\ResumeTemplate;
 use App\Models\ResumeVersion;
-use App\Services\HuggingFaceService;
+use App\Services\Contracts\AiService;
 use App\Services\ResumeTemplateRenderer;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +28,7 @@ class GeneratedResumeController extends Controller
     public function __construct(
         private ResumeTemplateRenderer $renderer,
         private StorageService $storage,
+        private AiService $ai,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -201,7 +202,7 @@ class GeneratedResumeController extends Controller
         return $this->ok($response);
     }
 
-    public function enhance(EnhanceRequest $request, GeneratedResume $generatedResume, HuggingFaceService $hf): JsonResponse
+    public function enhance(EnhanceRequest $request, GeneratedResume $generatedResume, AiService $hf): JsonResponse
     {
         $this->authorize('enhance', $generatedResume);
         $text = $request->validated()['text'];
@@ -226,7 +227,7 @@ class GeneratedResumeController extends Controller
         ]);
     }
 
-    public function tailor(TailorRequest $request, GeneratedResume $generatedResume, HuggingFaceService $hf): JsonResponse
+    public function tailor(TailorRequest $request, GeneratedResume $generatedResume, AiService $hf): JsonResponse
     {
         $this->authorize('tailor', $generatedResume);
         $jobId = $request->validated()['jobId'];
@@ -325,6 +326,13 @@ class GeneratedResumeController extends Controller
         ];
     }
 
+    /**
+     * Prefill builder content from an uploaded resume.
+     *
+     * Skills come from the row (already extracted at upload time); everything
+     * else is parsed out of the stored text by the AI provider, falling back to
+     * a heuristic section parse when no provider is configured.
+     */
     private function contentFromResume(\App\Models\Resume $resume): array
     {
         $skillsJson = is_array($resume->skills_json) ? $resume->skills_json : ['skills' => [], 'categories' => []];
@@ -335,15 +343,30 @@ class GeneratedResumeController extends Controller
                 $skillGroups[] = ['category' => $cat, 'items' => $items];
             }
         }
+
+        $parsed = $this->ai->extractResumeContent((string) $resume->extracted_text);
+        $content = $parsed->result;
+
+        // Fall back to the account details when the resume text has no contact
+        // block of its own.
+        $contact = $content['contact'] ?? [];
+        if (($contact['name'] ?? '') === '') {
+            $contact['name'] = $resume->user?->name ?? '';
+        }
+        if (($contact['email'] ?? '') === '') {
+            $contact['email'] = $resume->user?->email ?? '';
+        }
+
         return [
-            'contact' => ['name' => $resume->user?->name ?? '', 'email' => $resume->user?->email ?? ''],
-            'summary' => '',
-            'experience' => [],
-            'education' => [],
+            'contact' => $contact,
+            'summary' => $content['summary'] ?? '',
+            'experience' => $content['experience'] ?? [],
+            'education' => $content['education'] ?? [],
             'skills' => $skillGroups,
-            'projects' => [],
-            'certifications' => [],
+            'projects' => $content['projects'] ?? [],
+            'certifications' => $content['certifications'] ?? [],
             'experienceYears' => $resume->experience_years ?? 0,
+            '_contentSource' => $parsed->source,
         ];
     }
 }

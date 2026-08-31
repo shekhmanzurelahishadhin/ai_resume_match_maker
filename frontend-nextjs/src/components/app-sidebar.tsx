@@ -190,7 +190,13 @@ export function AppSidebar() {
       </div>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:bg-sidebar md:text-sidebar-foreground shrink-0">
+      {/*
+        `self-start` + a viewport-height box is what makes `sticky` work here:
+        as a stretched flex child the sidebar would be as tall as the (much
+        taller) page, leaving it nothing to stick within, so it just scrolled
+        away with the content.
+      */}
+      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:bg-sidebar md:text-sidebar-foreground shrink-0 md:sticky md:top-0 md:h-screen md:self-start">
         {Brand}
         <div className="flex-1 overflow-y-auto">{NavList}</div>
         {Footer}

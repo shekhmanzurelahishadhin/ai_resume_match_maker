@@ -124,7 +124,14 @@ body {
                     <span class="rm-exp-position">{{ $exp['position'] ?? '' }}</span>
                     <span class="rm-exp-meta">
                         {{ $exp['company'] ?? '' }}
-                        @if(!empty($exp['startDate'])) · {{ $exp['startDate'] }}@if(!empty($exp['endDate'])) – {{ $exp['endDate'] }}@else – Present@endif @endif
+                        @if(!empty($exp['startDate']))
+                            · {{ $exp['startDate'] }}
+                            @if(!empty($exp['endDate']))
+                                – {{ $exp['endDate'] }}
+                            @else
+                                – Present
+                            @endif
+                        @endif
                     </span>
                 </div>
                 @if(!empty($exp['description']))<p class="rm-exp-desc">{{ $exp['description'] }}</p>@endif
@@ -147,7 +154,12 @@ body {
                 <div class="rm-exp-head">
                     <span class="rm-exp-position">{{ $edu['institution'] ?? '' }}</span>
                     <span class="rm-exp-meta">
-                        @if(!empty($edu['startDate'])){{ $edu['startDate'] }}@if(!empty($edu['endDate'])) – {{ $edu['endDate'] }}@endif @endif
+                        @if(!empty($edu['startDate']))
+                            {{ $edu['startDate'] }}
+                            @if(!empty($edu['endDate']))
+                                – {{ $edu['endDate'] }}
+                            @endif
+                        @endif
                     </span>
                 </div>
                 @if(!empty($edu['degree']))

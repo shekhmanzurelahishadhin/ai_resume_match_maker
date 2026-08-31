@@ -1,29 +1,29 @@
 // Recruiter → My Jobs. Lists the recruiter's jobs + create button.
 
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { Briefcase, Plus } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull, type Paginated } from "@/lib/server-api";
 import { JobCard } from "@/components/job-card";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-export default async function RecruiterJobsPage() {
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string; role?: string } | undefined;
-  if (!user?.id) return null;
-  if (user.role !== "recruiter") notFound();
+interface JobListItem {
+  id: string;
+  title: string;
+  description: string;
+  requiredSkills: string[];
+  isActive: boolean;
+  matchCount: number;
+  createdAt: string;
+}
 
-  const jobs = await db.jobPost.findMany({
-    where: { recruiterId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { matches: true } } },
-  });
+export default async function RecruiterJobsPage() {
+  // The API already scopes this to the signed-in recruiter's own jobs.
+  const page = await apiGetOrNull<Paginated<JobListItem>>("jobs?pageSize=100");
+  const jobs = page?.items ?? [];
 
   return (
     <div className="space-y-6">
@@ -52,16 +52,7 @@ export default async function RecruiterJobsPage() {
           {jobs.map((j) => (
             <JobCard
               key={j.id}
-              job={{
-                id: j.id,
-                title: j.title,
-                description: j.description,
-                requiredSkills:
-                  (j.requiredSkillsJson as { skills?: string[] })?.skills ?? [],
-                isActive: j.isActive,
-                createdAt: j.createdAt.toISOString(),
-                matchCount: j._count.matches,
-              }}
+              job={j}
               variant="recruiter"
             />
           ))}

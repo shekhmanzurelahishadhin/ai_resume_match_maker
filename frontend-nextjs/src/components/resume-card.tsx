@@ -21,6 +21,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ResumeStatusWatcher } from "@/components/resume-status-watcher";
 
 export interface ResumeCardData {
   id: string;
@@ -30,7 +31,7 @@ export interface ResumeCardData {
   status: "pending" | "parsing" | "ready" | "failed";
   parseError: string | null;
   createdAt: string;
-  _count?: { matches: number };
+  matchCount?: number;
 }
 
 const statusMeta: Record<
@@ -115,6 +116,7 @@ export function ResumeCard({ resume }: { resume: ResumeCardData }) {
 
   return (
     <Card className="overflow-hidden">
+      <ResumeStatusWatcher resumeId={resume.id} status={resume.status} />
       <CardContent className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
@@ -161,7 +163,7 @@ export function ResumeCard({ resume }: { resume: ResumeCardData }) {
           </div>
           <div className="rounded-md bg-muted/50 p-2">
             <p className="text-muted-foreground">Matches</p>
-            <p className="font-semibold">{resume._count?.matches ?? 0}</p>
+            <p className="font-semibold">{resume.matchCount ?? 0}</p>
           </div>
         </div>
       </CardContent>

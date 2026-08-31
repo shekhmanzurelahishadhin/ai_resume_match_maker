@@ -13,7 +13,8 @@ return new class extends Migration
             $table->string('cache_key', 64)->unique(); // md5(resumeText + jobText)
             $table->json('result');
             $table->string('source'); // 'ai' | 'fallback'
-            $table->timestamp('expires_at');
+            // Explicit default — see the note in the rate_limit_buckets migration.
+            $table->timestamp('expires_at')->useCurrent();
             $table->timestamps();
 
             $table->index('cache_key');

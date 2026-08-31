@@ -57,7 +57,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "npx concurrently -k \"vite\" \"php artisan serve\" \"php artisan queue:listen\""
+            "npx --yes concurrently -k -n api,queue -c blue,magenta \"php artisan serve\" \"php artisan queue:listen --tries=1\""
         ],
         "test": [
             "@php artisan test"

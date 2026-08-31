@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Services\CacheService;
+use App\Services\Contracts\AiService;
 use App\Services\FirebaseService;
+use App\Services\GroqService;
 use App\Services\HuggingFaceService;
 use App\Services\MatchService;
 use App\Services\NotificationService;
@@ -26,6 +28,19 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(HuggingFaceService::class, function ($app) {
             return new HuggingFaceService(client: null, cache: $app->make(CacheService::class));
         });
+        // Explicit closure: the container would otherwise autowire the
+        // `?Client $client = null` parameter with an unconfigured Guzzle client
+        // instead of honouring the default, leaving base_uri unset.
+        $this->app->singleton(GroqService::class, function () {
+            return new GroqService(client: null);
+        });
+
+        // Everything that consumes AI type-hints the AiService contract; this
+        // binding decides which provider backs it (see config/ai.php).
+        $this->app->singleton(AiService::class, function ($app) {
+            return $app->make($this->resolveAiProvider());
+        });
+
         $this->app->singleton(CacheService::class);
         $this->app->singleton(StorageService::class);
         $this->app->singleton(PdfParserService::class);
@@ -35,13 +50,31 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(MatchService::class, function ($app) {
             return new MatchService(
-                $app->make(HuggingFaceService::class),
+                $app->make(AiService::class),
                 $app->make(NotificationService::class),
             );
         });
         $this->app->singleton(NotificationService::class, function ($app) {
             return new NotificationService($app->make(FirebaseService::class));
         });
+    }
+
+    /**
+     * Which concrete provider backs the AiService contract.
+     *
+     * @return class-string<AiService>
+     */
+    private function resolveAiProvider(): string
+    {
+        $pinned = strtolower(trim((string) config('ai.provider')));
+        if ($pinned === 'groq') {
+            return GroqService::class;
+        }
+        if ($pinned === 'huggingface') {
+            return HuggingFaceService::class;
+        }
+
+        return filled(config('groq.api_key')) ? GroqService::class : HuggingFaceService::class;
     }
 
     /**

@@ -4,7 +4,7 @@
 // (15/page), click-to-mark-as-read, "data" payload includes a link to
 // navigate to (e.g., to the matched resume/job).
 
-import { useEffect, useCallback, useState } from "react";
+import { Suspense, useEffect, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -89,7 +89,7 @@ function formatDate(iso: string): string {
   });
 }
 
-export default function NotificationsPage() {
+function NotificationsView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -340,5 +340,15 @@ export default function NotificationsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// useSearchParams() opts the subtree into client-side rendering, so it has to
+// sit inside a Suspense boundary or the static prerender of this route fails.
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={null}>
+      <NotificationsView />
+    </Suspense>
   );
 }

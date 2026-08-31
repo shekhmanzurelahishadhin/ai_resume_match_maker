@@ -32,7 +32,10 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
         <env name="FILESYSTEM_DISK" value="local"/>
+        <!-- Both AI keys blank so every test takes the deterministic fallback
+             path and no test ever hits a live inference API. -->
         <env name="HUGGINGFACE_API_KEY" value=""/>
+        <env name="GROQ_API_KEY" value=""/>
         <env name="ADMIN_SECRET" value="test-admin-secret"/>
     </php>
 </phpunit>

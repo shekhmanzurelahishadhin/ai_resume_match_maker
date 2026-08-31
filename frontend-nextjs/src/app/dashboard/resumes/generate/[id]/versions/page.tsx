@@ -1,17 +1,23 @@
 // [id]/versions/page.tsx — version history with restore buttons.
 
 import Link from "next/link";
-import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { authOptions } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { apiGetOrNull } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { VersionHistory } from "@/components/resume-builder/version-history";
 
 export const dynamic = "force-dynamic";
+
+interface GeneratedResumeDetail {
+  id: string;
+  version: number;
+  contentJson: unknown;
+  customizationJson: unknown;
+  template: { id: string; slug: string; name: string };
+}
 
 export default async function VersionsPage({
   params,
@@ -19,22 +25,13 @@ export default async function VersionsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await getServerSession(authOptions);
-  const user = session?.user as { id?: string } | undefined;
-  if (!user?.id) notFound();
 
-  const r = await db.generatedResume.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      userId: true,
-      version: true,
-      template: { select: { name: true } },
-      contentJson: true,
-    },
-  });
+  // Ownership is enforced by the API policy; a 403/404 arrives here as null.
+  const payload = await apiGetOrNull<{ resume: GeneratedResumeDetail }>(
+    `resumes/generate/${id}`,
+  );
+  const r = payload?.resume;
   if (!r) notFound();
-  if (r.userId !== user.id) notFound();
 
   const name =
     ((r.contentJson as { contact?: { name?: string } })?.contact?.name ?? "").trim() ||

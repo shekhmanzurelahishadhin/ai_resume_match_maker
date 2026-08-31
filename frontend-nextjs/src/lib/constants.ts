@@ -42,19 +42,6 @@ export const AI_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 // ---------- Pagination ----------
 export const DEFAULT_PAGE_SIZE = 15;
 
-// ---------- Hugging Face models (used by HuggingFaceService when key is present) ----------
-export const HF_MODELS = {
-  NER_SKILLS: "dslim/bert-base-NER",
-  CROSS_ENCODER: "cross-encoder/ms-marco-MiniLM-L-6-v2",
-  ZERO_SHOT_CLASSIFY: "facebook/bart-large-mnli",
-} as const;
-
-// ---------- AI retry policy ----------
-export const HF_RETRY = {
-  ATTEMPTS: 3,
-  BASE_DELAY_MS: 2000,
-} as const;
-
 // ---------- Auth ----------
 export const BCRYPT_ROUNDS = 10;
 export const JWT_SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
