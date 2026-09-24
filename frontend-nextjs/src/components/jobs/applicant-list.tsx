@@ -101,7 +101,7 @@ export function ApplicantList({ jobId, showJob = false }: { jobId?: string; show
           />
         </div>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-[170px]" aria-label="Status filter">
+          <SelectTrigger className="w-full sm:w-[170px]" aria-label="Status filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -213,7 +213,7 @@ function ApplicantCard({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 sm:shrink-0">
+          <div className="flex items-center justify-between gap-3 sm:justify-start sm:shrink-0">
             {app.matchPercentage != null ? (
               <div className="text-right">
                 <p className={`text-lg font-bold tabular-nums leading-none ${pctColor(app.matchPercentage)}`}>
@@ -223,7 +223,7 @@ function ApplicantCard({
               </div>
             ) : null}
             <Select value={app.status} onValueChange={(v) => onMove(v as ApplicationStatus)} disabled={moving}>
-              <SelectTrigger className="w-[150px]" aria-label="Move to stage">
+              <SelectTrigger className="w-[160px]" aria-label="Move to stage">
                 {moving ? <Loader2 className="size-4 animate-spin" /> : <SelectValue />}
               </SelectTrigger>
               <SelectContent>

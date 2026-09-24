@@ -98,7 +98,7 @@ export default function JobDetailsPage() {
           <Card>
             <CardContent className="space-y-4">
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">{j.title}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{j.title}</h1>
                 <p className="text-muted-foreground">{j.company}</p>
               </div>
               <JobMeta job={j} showCompany={false} className="text-sm" />

@@ -62,7 +62,7 @@ export default function SeekerApplicationsPage() {
       </div>
 
       <Tabs value={group} onValueChange={setGroup}>
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
           {Object.entries(GROUPS).map(([k, g]) => (
             <TabsTrigger key={k} value={k}>
               {g.label} <span className="ml-1 text-muted-foreground tabular-nums">({counts[k]})</span>
@@ -117,7 +117,7 @@ export default function SeekerApplicationsPage() {
                     ) : null}
                   </p>
                 </div>
-                <div className="flex items-center gap-3 sm:shrink-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 sm:shrink-0">
                   {a.matchPercentage != null ? (
                     <div className="text-right">
                       <p className={`text-lg font-bold tabular-nums leading-none ${pctColor(a.matchPercentage)}`}>

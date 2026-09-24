@@ -103,7 +103,7 @@ export function CandidateList({ jobId, jobTitle }: { jobId: string; jobTitle: st
           />
         </div>
         <Select value={minMatch} onValueChange={setMinMatch}>
-          <SelectTrigger className="w-[160px]" aria-label="Minimum match">
+          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Minimum match">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -167,7 +167,7 @@ export function CandidateList({ jobId, jobTitle }: { jobId: string; jobTitle: st
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 w-40">
+                      <td className="px-4 py-3 w-28 sm:w-40">
                         <div className="flex items-center gap-2">
                           <Progress value={row.matchPercentage} className="h-2" />
                           <span className={`text-xs font-semibold tabular-nums w-9 ${pctColor(row.matchPercentage)}`}>
@@ -189,8 +189,8 @@ export function CandidateList({ jobId, jobTitle }: { jobId: string; jobTitle: st
                         {row.resume.experienceYears != null ? `${row.resume.experienceYears} yr` : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex justify-end gap-1.5">
-                          <Button size="sm" variant="outline" onClick={() => setSelected(row)}>
+                        <div className="flex flex-col items-end gap-1.5 sm:flex-row sm:justify-end">
+                          <Button size="sm" variant="outline" className="hidden sm:inline-flex" onClick={() => setSelected(row)}>
                             Profile
                           </Button>
                           {row.conversationId ? (

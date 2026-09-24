@@ -78,7 +78,7 @@ export default async function CandidatesPage({
             <CardTitle className="text-base">Jobs ({jobs.length})</CardTitle>
           </CardHeader>
           <CardContent className="px-2">
-            <ul className="space-y-1">
+            <ul className="space-y-1 max-h-60 overflow-y-auto lg:max-h-none">
               {jobs.map((j) => {
                 const active = j.id === selected.id;
                 return (

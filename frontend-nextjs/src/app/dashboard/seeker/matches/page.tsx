@@ -168,7 +168,7 @@ export default function SeekerMatchesPage() {
                 <thead className="border-b bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">Job</th>
-                    <th className="px-4 py-2.5 font-medium">Recruiter</th>
+                    <th className="px-4 py-2.5 font-medium hidden md:table-cell">Recruiter</th>
                     <th
                       className="px-4 py-2.5 font-medium cursor-pointer select-none"
                       onClick={() => toggleSort("matchPercentage")}
@@ -177,16 +177,16 @@ export default function SeekerMatchesPage() {
                         Match <ArrowUpDown className="size-3" />
                       </span>
                     </th>
-                    <th className="px-4 py-2.5 font-medium">Skills</th>
+                    <th className="px-4 py-2.5 font-medium hidden lg:table-cell">Skills</th>
                     <th
-                      className="px-4 py-2.5 font-medium cursor-pointer select-none"
+                      className="px-4 py-2.5 font-medium cursor-pointer select-none hidden sm:table-cell"
                       onClick={() => toggleSort("analyzedAt")}
                     >
                       <span className="inline-flex items-center gap-1">
                         Analyzed <ArrowUpDown className="size-3" />
                       </span>
                     </th>
-                    <th className="px-4 py-2.5 font-medium text-right">Action</th>
+                    <th className="px-4 py-2.5 font-medium text-right hidden sm:table-cell">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -206,10 +206,10 @@ export default function SeekerMatchesPage() {
                           </Link>
                         ) : null}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {m.job.recruiterName ?? "—"}
                       </td>
-                      <td className="px-4 py-3 w-40">
+                      <td className="px-4 py-3 w-28 sm:w-40">
                         <div className="flex items-center gap-2">
                           <Progress value={m.matchPercentage} className="h-2" />
                           <span className="text-xs font-semibold tabular-nums w-9">
@@ -220,7 +220,7 @@ export default function SeekerMatchesPage() {
                           <AiSourceBadge source={m.matchSource} />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 hidden lg:table-cell">
                         <div className="flex flex-wrap gap-1 max-w-md">
                           {m.matchedSkills.slice(0, 4).map((s) => (
                             <SkillBadge key={s} skill={s} variant="matched" />
@@ -235,10 +235,10 @@ export default function SeekerMatchesPage() {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                         {new Date(m.analyzedAt).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right hidden sm:table-cell">
                         <Button asChild size="sm" variant="outline">
                           <Link href={`/dashboard/jobs/${m.job.id}`}>View & apply</Link>
                         </Button>

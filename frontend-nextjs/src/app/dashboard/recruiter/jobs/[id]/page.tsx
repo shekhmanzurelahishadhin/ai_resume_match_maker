@@ -127,7 +127,7 @@ function RecruiterJob() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{j.title}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{j.title}</h1>
               <Badge
                 variant="outline"
                 className={
@@ -164,7 +164,7 @@ function RecruiterJob() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Stat icon={Sparkles} label="Matched candidates" value={j.matchCount ?? 0} onClick={() => setTab("candidates")} />
         <Stat icon={Inbox} label="Applications" value={j.applicationCount ?? 0} onClick={() => setTab("applicants")} />
         <Stat
@@ -177,7 +177,7 @@ function RecruiterJob() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-fit">
           <TabsTrigger value="candidates">Matched candidates</TabsTrigger>
           <TabsTrigger value="applicants">
             Applicants
@@ -258,11 +258,11 @@ function Stat({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-xl border bg-card p-4 text-left transition-colors hover:border-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+      className="rounded-xl border bg-card p-3 sm:p-4 text-left transition-colors hover:border-emerald-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
     >
       <Icon className={`size-4 ${highlight ? "text-emerald-600" : "text-muted-foreground"}`} />
       <p className={`mt-2 text-2xl font-bold tabular-nums ${highlight ? "text-emerald-600" : ""}`}>{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground leading-tight">{label}</p>
     </button>
   );
 }
