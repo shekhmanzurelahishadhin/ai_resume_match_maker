@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\GeneratedResumeController;
 use App\Http\Controllers\Api\JobController;
@@ -88,6 +90,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('jobs/{job}/candidates', [JobController::class, 'candidates'])
         ->middleware('role:recruiter');
 
+    // Applications (seekers apply; recruiters move them through the pipeline)
+    Route::post('jobs/{job}/apply', [ApplicationController::class, 'apply'])->middleware('role:seeker');
+    Route::get('applications', [ApplicationController::class, 'index']);
+    Route::get('applications/{application}', [ApplicationController::class, 'show']);
+    Route::patch('applications/{application}', [ApplicationController::class, 'updateStatus'])->middleware('role:recruiter');
+    Route::post('applications/{application}/withdraw', [ApplicationController::class, 'withdraw'])->middleware('role:seeker');
+    Route::get('applications/{application}/resume', [ApplicationController::class, 'resume']);
+
+    // Messages (recruiter opens a thread with a matched/applied candidate)
+    Route::get('conversations', [ConversationController::class, 'index']);
+    Route::get('conversations/unread-count', [ConversationController::class, 'unreadCount']);
+    Route::post('conversations', [ConversationController::class, 'store'])->middleware('role:recruiter');
+    Route::get('conversations/{conversation}', [ConversationController::class, 'show']);
+    Route::post('conversations/{conversation}/messages', [ConversationController::class, 'reply']);
+
     // Matches
     Route::get('matches/{match}', [MatchController::class, 'show']);
     Route::get('matches/resume/{resume}', [MatchController::class, 'byResume']);
@@ -95,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Templates
     Route::get('templates', [TemplateController::class, 'index']);
+    Route::get('templates/{slug}/sample', [TemplateController::class, 'sample']);
     Route::get('templates/{slug}', [TemplateController::class, 'show']);
 
     // Notifications (Phase 3)

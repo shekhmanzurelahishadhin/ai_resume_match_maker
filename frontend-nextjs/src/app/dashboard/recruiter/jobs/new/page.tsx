@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default function NewJobPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <div>
         <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2">
           <Link href="/dashboard/recruiter/jobs">

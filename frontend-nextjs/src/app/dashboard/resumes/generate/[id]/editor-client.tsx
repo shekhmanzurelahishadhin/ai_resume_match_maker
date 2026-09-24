@@ -1,7 +1,8 @@
 "use client";
 
-// [id]/editor-client.tsx — the interactive resume editor (form + preview side-by-side).
-// Used by both the edit page and the [id]/page.tsx edit mode.
+// [id]/editor-client.tsx — the interactive resume editor.
+// Left: Content (the form) and Design (template + theme) tabs. Right: live
+// preview, refreshed after every successful save from either tab.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -12,6 +13,8 @@ import {
   Eye,
   ExternalLink,
   History,
+  Palette,
+  PenLine,
   Scissors,
   Trash2,
 } from "lucide-react";
@@ -25,6 +28,7 @@ import {
 } from "@/lib/validators/resume-content";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,11 +44,16 @@ import { ResumeForm } from "@/components/resume-builder/resume-form";
 import { ResumePreview } from "@/components/resume-builder/resume-preview";
 import { ExportDialog } from "@/components/resume-builder/export-dialog";
 import { TailorDialog } from "@/components/resume-builder/tailor-dialog";
+import {
+  DesignPanel,
+  type ActiveTemplate,
+} from "@/components/resume-builder/design-panel";
 
 interface EditorClientProps {
   resumeId: string;
   initialContent: ResumeContent;
   customization: ResumeCustomization | null;
+  templateId: string;
   templateName: string;
   templateSlug: string;
   currentVersion: number;
@@ -53,7 +62,8 @@ interface EditorClientProps {
 export function EditorClient({
   resumeId,
   initialContent,
-  customization,
+  customization: initialCustomization,
+  templateId,
   templateName,
   templateSlug,
   currentVersion,
@@ -61,6 +71,14 @@ export function EditorClient({
   const router = useRouter();
   const qc = useQueryClient();
   const [revision, setRevision] = useState(0);
+  const [template, setTemplate] = useState<ActiveTemplate>({
+    id: templateId,
+    slug: templateSlug,
+    name: templateName,
+  });
+  const [customization, setCustomization] = useState<ResumeCustomization>(
+    initialCustomization ?? {},
+  );
   const [exportOpen, setExportOpen] = useState(false);
   const [tailorOpen, setTailorOpen] = useState(false);
 
@@ -98,7 +116,7 @@ export function EditorClient({
               {initialContent.contact.name || "Untitled resume"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {templateName} · v{currentVersion} ·{" "}
+              {template.name} · v{currentVersion} ·{" "}
               <Link
                 href={`/dashboard/resumes/generate/${resumeId}/preview`}
                 className="text-emerald-600 hover:underline inline-flex items-center gap-1"
@@ -163,14 +181,37 @@ export function EditorClient({
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Left: edit form */}
+        {/* Left: content form + design panel. forceMount keeps the form
+            mounted while the Design tab is open, so unsaved edits and the
+            pending autosave are not lost when switching tabs. */}
         <div className="min-w-0">
-          <ResumeForm
-            resumeId={resumeId}
-            initialContent={initialContent}
-            customization={customization}
-            onSaved={(v) => setRevision((r) => r + 1)}
-          />
+          <Tabs defaultValue="content">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="content" className="gap-1.5">
+                <PenLine className="size-4" /> Content
+              </TabsTrigger>
+              <TabsTrigger value="design" className="gap-1.5">
+                <Palette className="size-4" /> Design
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="content" forceMount className="mt-0 data-[state=inactive]:hidden">
+              <ResumeForm
+                resumeId={resumeId}
+                initialContent={initialContent}
+                onSaved={() => setRevision((r) => r + 1)}
+              />
+            </TabsContent>
+            <TabsContent value="design" className="mt-0">
+              <DesignPanel
+                resumeId={resumeId}
+                template={template}
+                customization={customization}
+                onTemplateChange={setTemplate}
+                onCustomizationChange={setCustomization}
+                onSaved={() => setRevision((r) => r + 1)}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
         {/* Right: live preview */}
         <div className="lg:sticky lg:top-4 self-start">
@@ -198,11 +239,9 @@ export function EditorClient({
       />
 
       <p className="text-xs text-muted-foreground">
-        Template: <code className="text-emerald-700 dark:text-emerald-400">{templateSlug}</code>
+        Template: <code className="text-emerald-700 dark:text-emerald-400">{template.slug}</code>
         {" · "}
-        Customization: {customization && Object.keys(customization).length > 0
-          ? "customized"
-          : "default"}
+        Theme: {Object.keys(customization).length > 0 ? "customized" : "template default"}
       </p>
     </div>
   );

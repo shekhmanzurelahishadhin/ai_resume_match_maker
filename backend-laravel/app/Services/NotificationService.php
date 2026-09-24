@@ -3,8 +3,11 @@
 namespace App\Services;
 
 use App\Jobs\SendPushNotification;
+use App\Models\Conversation;
 use App\Models\DeviceToken;
+use App\Models\JobApplication;
 use App\Models\JobMatch;
+use App\Models\Message;
 use App\Models\Notification;
 use App\Models\NotificationPreference;
 use App\Models\Resume;
@@ -70,7 +73,7 @@ class NotificationService
                 'matchId' => $match->id,
                 'jobId' => $job->id,
                 'matchPercentage' => $match->match_percentage,
-                'url' => '/matches',
+                'url' => "/dashboard/jobs/{$job->id}",
             ],
         ], $prefs);
 
@@ -100,7 +103,7 @@ class NotificationService
                 'matchId' => $match->id,
                 'jobId' => $match->job_post_id,
                 'matchPercentage' => $match->match_percentage,
-                'url' => "/jobs/{$match->job_post_id}/candidates",
+                'url' => "/dashboard/recruiter/jobs/{$match->job_post_id}",
             ],
         ], $prefs);
     }
@@ -118,7 +121,7 @@ class NotificationService
                 'type' => 'new_job',
                 'title' => 'New job posted',
                 'body' => "'{$title}' was just posted by {$recruiterName}.",
-                'data_json' => ['jobId' => $jobId, 'url' => '/jobs'],
+                'data_json' => ['jobId' => $jobId, 'url' => "/dashboard/jobs/{$jobId}"],
             ], $prefs);
             $count++;
         }
@@ -135,6 +138,68 @@ class NotificationService
             'title' => $title,
             'body' => $body,
             'data_json' => $data,
+        ], null);
+    }
+
+    public function notifyApplicationReceived(JobApplication $application): ?Notification
+    {
+        $job = $application->jobPost;
+        if (! $job) {
+            return null;
+        }
+        $name = $application->seeker?->name ?? 'A candidate';
+        $score = $application->match_percentage !== null
+            ? sprintf(' (%d%% match)', round($application->match_percentage))
+            : '';
+
+        return $this->create([
+            'user_id' => $job->recruiter_id,
+            'type' => 'application',
+            'title' => 'New application',
+            'body' => "{$name} applied to '{$job->title}'{$score}.",
+            'data_json' => [
+                'applicationId' => $application->id,
+                'jobId' => $job->id,
+                'url' => "/dashboard/recruiter/jobs/{$job->id}?tab=applicants",
+            ],
+        ], null);
+    }
+
+    public function notifyApplicationStatus(JobApplication $application): ?Notification
+    {
+        $job = $application->jobPost;
+        if (! $job) {
+            return null;
+        }
+
+        return $this->create([
+            'user_id' => $application->seeker_id,
+            'type' => 'application',
+            'title' => 'Application update',
+            'body' => "Your application for '{$job->title}' is now: {$application->status->label()}.",
+            'data_json' => [
+                'applicationId' => $application->id,
+                'jobId' => $job->id,
+                'status' => $application->status->value,
+                'url' => '/dashboard/seeker/applications',
+            ],
+        ], null);
+    }
+
+    public function notifyNewMessage(Conversation $conversation, User $sender, Message $message): ?Notification
+    {
+        $recipientId = $conversation->otherParticipantId($sender);
+        $about = $conversation->jobPost ? " about '{$conversation->jobPost->title}'" : '';
+
+        return $this->create([
+            'user_id' => $recipientId,
+            'type' => 'message',
+            'title' => "New message from {$sender->name}",
+            'body' => mb_strimwidth($message->body, 0, 160, '…').$about,
+            'data_json' => [
+                'conversationId' => $conversation->id,
+                'url' => "/dashboard/messages?c={$conversation->id}",
+            ],
         ], null);
     }
 

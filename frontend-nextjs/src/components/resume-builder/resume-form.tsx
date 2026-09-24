@@ -1,8 +1,12 @@
 "use client";
 
-// resume-form.tsx — tabbed form for editing a generated resume.
-// Tabs: Contact / Summary / Experience / Education / Skills / Projects.
-// Auto-saves (debounced 1500ms) on any change via PUT /api/resumes/generate/{id}.
+// resume-form.tsx — tabbed form for editing a generated resume's content.
+// Tabs: Contact / Summary / Experience / Education / Skills / Projects /
+// Certifications. Auto-saves (debounced 1500ms) via PUT /api/resumes/generate/{id}.
+//
+// Only `contentJson` is sent. Template and theme are saved separately by the
+// Design panel; sending them from here too used to overwrite a theme change
+// with the stale value this form was mounted with.
 
 import { useEffect, useRef, useState } from "react";
 import { useForm, type FieldErrors } from "react-hook-form";
@@ -14,7 +18,6 @@ import { toast } from "sonner";
 import {
   resumeContentSchema,
   type ResumeContent,
-  type ResumeCustomization,
 } from "@/lib/validators/resume-content";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,16 +34,10 @@ export type ResumeFormValues = ResumeContent;
 interface Props {
   resumeId: string;
   initialContent: ResumeContent;
-  customization: ResumeCustomization | null;
   onSaved?: (version: number) => void;
 }
 
-export function ResumeForm({
-  resumeId,
-  initialContent,
-  customization,
-  onSaved,
-}: Props) {
+export function ResumeForm({ resumeId, initialContent, onSaved }: Props) {
   const qc = useQueryClient();
   const [revision, setRevision] = useState(0);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,10 +74,7 @@ export function ResumeForm({
       const res = await fetch(`/api/resumes/generate/${resumeId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contentJson: content,
-          customizationJson: customization ?? {},
-        }),
+        body: JSON.stringify({ contentJson: content }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json?.error?.message ?? "Save failed");
@@ -94,23 +88,28 @@ export function ResumeForm({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Auto-save (debounced 1500ms) whenever the form becomes dirty.
+  // Auto-save (debounced 1500ms) after each edit. Keyed on `revision` (bumped
+  // only by field changes) rather than `isDirty` + the mutation object: the
+  // form stays dirty after a save and the mutation object changes identity on
+  // every status change, so depending on those re-saved in an endless loop.
+  const { mutate: save } = saveMut;
   useEffect(() => {
-    if (!isDirty) return;
+    if (revision === 0 || !isDirty) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      handleSubmit((values) => saveMut.mutate(values))();
+      handleSubmit((values) => save(values))();
     }, 1500);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [isDirty, handleSubmit, saveMut]);
+  }, [revision, isDirty, handleSubmit, save]);
 
   // Convenience: project field-array.
   // (Projects + Education are simple enough to inline here without a separate component.)
 
   const eduList = watch("education");
   const projList = watch("projects");
+  const certList = watch("certifications");
 
   const setEdu = (i: number, key: keyof ResumeContent["education"][number], value: string) => {
     const next = [...(getValues("education") as ResumeContent["education"])];
@@ -156,17 +155,36 @@ export function ResumeForm({
     setValue("projects", next, { shouldDirty: true });
   };
 
+  type Cert = NonNullable<ResumeContent["certifications"]>[number];
+  const certs = () => [...((getValues("certifications") as Cert[] | undefined) ?? [])];
+  const setCert = (i: number, key: keyof Cert, value: string) => {
+    const next = certs();
+    next[i] = { ...next[i], [key]: value };
+    setValue("certifications", next, { shouldDirty: true });
+  };
+  const addCert = () => {
+    setValue("certifications", [...certs(), { name: "", issuer: "", date: "" }], {
+      shouldDirty: true,
+    });
+  };
+  const removeCert = (i: number) => {
+    const next = certs();
+    next.splice(i, 1);
+    setValue("certifications", next, { shouldDirty: true });
+  };
+
   return (
     <Card>
       <CardContent className="p-4 md:p-6">
         <Tabs defaultValue="contact">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 h-auto">
+          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 mb-4 h-auto">
             <TabsTrigger value="contact" className="text-xs sm:text-sm">Contact</TabsTrigger>
             <TabsTrigger value="summary" className="text-xs sm:text-sm">Summary</TabsTrigger>
             <TabsTrigger value="experience" className="text-xs sm:text-sm">Experience</TabsTrigger>
             <TabsTrigger value="education" className="text-xs sm:text-sm">Education</TabsTrigger>
             <TabsTrigger value="skills" className="text-xs sm:text-sm">Skills</TabsTrigger>
             <TabsTrigger value="projects" className="text-xs sm:text-sm">Projects</TabsTrigger>
+            <TabsTrigger value="certifications" className="text-xs sm:text-sm">Certs</TabsTrigger>
           </TabsList>
 
           {/* CONTACT */}
@@ -374,6 +392,60 @@ export function ResumeForm({
             ))}
             <Button type="button" variant="outline" size="sm" onClick={addProj}>
               <Plus className="size-4" /> Add project
+            </Button>
+          </TabsContent>
+
+          {/* CERTIFICATIONS */}
+          <TabsContent value="certifications" className="space-y-3 mt-2">
+            {(certList?.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground italic">
+                No certifications added yet.
+              </p>
+            )}
+            {(certList ?? []).map((_, index) => (
+              <Card key={index}>
+                <CardContent className="py-3 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">Certification #{index + 1}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7 text-rose-600 hover:text-rose-700"
+                      onClick={() => removeCert(index)}
+                      aria-label="Remove"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                  <Field label="Name">
+                    <Input
+                      value={certList?.[index]?.name ?? ""}
+                      onChange={(e) => setCert(index, "name", e.target.value)}
+                      placeholder="AWS Solutions Architect – Associate"
+                    />
+                  </Field>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <Field label="Issuer">
+                      <Input
+                        value={certList?.[index]?.issuer ?? ""}
+                        onChange={(e) => setCert(index, "issuer", e.target.value)}
+                        placeholder="Amazon Web Services"
+                      />
+                    </Field>
+                    <Field label="Date">
+                      <Input
+                        value={certList?.[index]?.date ?? ""}
+                        onChange={(e) => setCert(index, "date", e.target.value)}
+                        placeholder="2024"
+                      />
+                    </Field>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            <Button type="button" variant="outline" size="sm" onClick={addCert}>
+              <Plus className="size-4" /> Add certification
             </Button>
           </TabsContent>
         </Tabs>

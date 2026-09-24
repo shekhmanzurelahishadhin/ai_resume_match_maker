@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { apiGetOrNull } from "@/lib/server-api";
 import {
-  resumeContentSchema,
+  parseResumeContent,
   customizationSchema,
   type ResumeContent,
   type ResumeCustomization,
@@ -38,7 +38,7 @@ export default async function EditGeneratedResumePage({
 
   // Validate stored content. If it's malformed, fall back to an empty shell
   // (the user can still use the editor to rebuild).
-  const contentParsed = resumeContentSchema.safeParse(r.contentJson);
+  const contentParsed = parseResumeContent(r.contentJson);
   if (!contentParsed.success) {
     notFound();
   }
@@ -51,6 +51,7 @@ export default async function EditGeneratedResumePage({
       customization={
         (customizationParsed.success ? customizationParsed.data : null) as ResumeCustomization | null
       }
+      templateId={r.template.id}
       templateName={r.template.name}
       templateSlug={r.template.slug}
       currentVersion={r.version}

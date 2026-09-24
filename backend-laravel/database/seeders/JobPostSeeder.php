@@ -571,7 +571,7 @@ class JobPostSeeder extends Seeder
                     'description' => $job['description'],
                     'required_skills_json' => ['skills' => $job['skills']],
                     'is_active' => true,
-                ],
+                ] + $this->listingDetails($job['title'], $index),
             );
         }
 
@@ -580,6 +580,47 @@ class JobPostSeeder extends Seeder
             count(self::JOBS),
             $recruiterCount,
         ));
+    }
+
+    private const LOCATIONS = ['Dhaka, Bangladesh', 'Chattogram, Bangladesh', 'Singapore', 'Berlin, Germany', 'London, UK', 'Toronto, Canada', 'Kuala Lumpur, Malaysia', 'Dubai, UAE'];
+
+    private const WORK_MODES = ['remote', 'hybrid', 'onsite', 'remote', 'hybrid'];
+
+    /**
+     * Deterministic location / type / level / salary so re-seeding is stable.
+     *
+     * @return array<string, string>
+     */
+    private function listingDetails(string $title, int $index): array
+    {
+        $t = strtolower($title);
+        $level = match (true) {
+            str_contains($t, 'lead') || str_contains($t, 'manager') || str_contains($t, 'principal') || str_contains($t, 'head') || str_contains($t, 'architect') => 'lead',
+            str_contains($t, 'senior') || str_contains($t, 'staff') => 'senior',
+            str_contains($t, 'junior') || str_contains($t, 'intern') || str_contains($t, 'graduate') => 'entry',
+            default => 'mid',
+        };
+        $type = match (true) {
+            str_contains($t, 'intern') => 'internship',
+            $index % 9 === 4 => 'contract',
+            $index % 13 === 7 => 'part_time',
+            default => 'full_time',
+        };
+        [$low, $high] = match ($level) {
+            'entry' => [800, 1400],
+            'mid' => [1500, 2600],
+            'senior' => [2800, 4200],
+            'lead' => [4200, 6000],
+        };
+        $bump = ($index % 5) * 100;
+
+        return [
+            'location' => self::LOCATIONS[$index % count(self::LOCATIONS)],
+            'work_mode' => self::WORK_MODES[$index % count(self::WORK_MODES)],
+            'employment_type' => $type,
+            'experience_level' => $level,
+            'salary_range' => sprintf('$%s – $%s / month', number_format($low + $bump), number_format($high + $bump)),
+        ];
     }
 
     /**

@@ -1,25 +1,29 @@
-{{--
-  technical — Skills-forward layout emphasizing tech stack.
-  Inherits the shared layout.
---}}
-@extends('layouts.resume', [
-    'meta' => [
-        'slug' => 'technical',
-        'name' => 'Technical',
-        'colors' => ['primary' => '#0891b2', 'accent' => '#22d3ee', 'text' => '#1f2937'],
-        'fonts' => [
-            'heading' => "'Helvetica Neue', Arial, sans-serif",
-            'body' => "'SFMono-Regular', Menlo, Monaco, Consolas, monospace",
-        ],
-    ],
-])
+{{-- Technical — skills matrix first, monospace headings, tech tags on projects. --}}
+@extends('resume-templates._base')
 
-@section('head-extra')
-<style>
-.rm-page { padding: 40px; }
-.rm-name { font-size: 26px; font-family: 'Helvetica Neue', Arial, sans-serif; }
-.rm-section-title { font-family: 'Helvetica Neue', Arial, sans-serif; }
-.rm-skill-group, .rm-skill-items, .rm-bullets li { font-family: 'SFMono-Regular', Menlo, Monaco, Consolas, monospace; font-size: 12px; }
-.rm-section.rm-skills { order: -1; }
-</style>
+@section('styles')
+.tc-header { padding-bottom: 12px; margin-bottom: 14px; border-bottom: 2px solid {{ $theme['primary'] }}; }
+.tc-header .rm-name { font-size: 27px; }
+.tc-header .rm-contact-line a { color: {{ $theme['primary'] }}; }
+.rm-h { text-transform: none; letter-spacing: 0; font-size: 13px; color: {{ $theme['primary'] }}; }
+.rm-matrix { border: 1px solid {{ $theme['tintStrong'] }}; }
+.rm-matrix td { padding: 5px 8px; border-bottom: 1px solid {{ $theme['tint'] }}; }
+td.rm-matrix-cat { width: 24%; background: {{ $theme['tint'] }}; font-family: {!! $theme['headingFont'] !!}; font-size: 0.9em; font-weight: 700; color: {{ $theme['primary'] }}; }
+.rm-tech { font-family: {!! $theme['headingFont'] !!}; color: {{ $theme['primary'] }}; }
+@endsection
+
+@section('body')
+<div class="rm-page">
+    <header class="tc-header">
+        <h1 class="rm-name">{{ $content['contact']['name'] }}</h1>
+        @include('resume-templates.partials.contact-line')
+    </header>
+
+    @include('resume-templates.partials.summary', ['title' => '// summary'])
+    @include('resume-templates.partials.skills', ['style' => 'matrix', 'title' => '// tech stack'])
+    @include('resume-templates.partials.experience', ['title' => '// experience'])
+    @include('resume-templates.partials.projects', ['title' => '// projects'])
+    @include('resume-templates.partials.education', ['title' => '// education'])
+    @include('resume-templates.partials.certifications', ['title' => '// certifications'])
+</div>
 @endsection

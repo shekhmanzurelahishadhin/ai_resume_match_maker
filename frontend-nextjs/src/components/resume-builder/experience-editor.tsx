@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhanceButton } from "./enhance-button";
+import { ListField } from "./list-field";
 import type { ResumeFormValues } from "./resume-form";
 
 interface Props {
@@ -138,24 +139,18 @@ export function ExperienceEditor({ control, register, errors, setValue }: Props)
                       return bullets.split(/\r?\n/).filter(Boolean).join("\n");
                     }}
                     onApply={(improved) => {
-                      const el = document.getElementById(`exp-bullets-${index}`) as HTMLTextAreaElement | null;
-                      if (el) el.value = improved;
-                      // Also update react-hook-form's value so the change persists on save.
+                      // The bullets field is controlled, so updating the form
+                      // value also updates the textarea.
                       const lines = improved.split(/\r?\n/).filter(Boolean);
                       setValue(`experience.${index}.bullets` as const, lines, { shouldDirty: true });
                     }}
                   />
                 </div>
-                <Textarea
+                <ListField
+                  control={control}
+                  name={`experience.${index}.bullets` as const}
+                  mode="lines"
                   id={`exp-bullets-${index}`}
-                  {...register(`experience.${index}.bullets` as const)}
-                  setValueAs={(v) =>
-                    typeof v === "string"
-                      ? v.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-                      : Array.isArray(v)
-                        ? v
-                        : []
-                  }
                   placeholder={"Built X that achieved Y\nLed migration to Z reducing latency by 40%"}
                   rows={4}
                 />

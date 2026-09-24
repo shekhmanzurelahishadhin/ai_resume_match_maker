@@ -30,14 +30,29 @@ type Format = "pdf" | "docx" | "html";
 interface ExportResult {
   format: Format;
   fileName: string;
-  filePath: string;
-  fileUrl: string;
+  url: string;
   size: number;
+}
+
+function fileNameFrom(res: Response, format: Format): string {
+  const cd = res.headers.get("content-disposition") ?? "";
+  return cd.match(/filename="?([^";]+)"?/)?.[1] ?? `resume.${format}`;
+}
+
+function triggerDownload(url: string, fileName: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 export function ExportDialog({ resumeId, open, onOpenChange }: ExportDialogProps) {
   const [lastResult, setLastResult] = useState<ExportResult | null>(null);
 
+  // The API answers with the file itself (it is private, so there is no
+  // shareable link); save it through an object URL.
   const mut = useMutation({
     mutationFn: async (format: Format): Promise<ExportResult> => {
       const res = await fetch(`/api/resumes/generate/${resumeId}/export`, {
@@ -45,17 +60,25 @@ export function ExportDialog({ resumeId, open, onOpenChange }: ExportDialogProps
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ format }),
       });
-      const json = await res.json();
       if (!res.ok) {
+        const json = await res.json().catch(() => null);
         throw new Error(json?.error?.message ?? "Export failed");
       }
-      return json.data.export as ExportResult;
+      const blob = await res.blob();
+      return {
+        format,
+        fileName: fileNameFrom(res, format),
+        url: URL.createObjectURL(blob),
+        size: blob.size,
+      };
     },
     onSuccess: (data) => {
-      setLastResult(data);
-      toast.success(`${data.format.toUpperCase()} exported (${formatBytes(data.size)}).`);
-      // Trigger a browser download in the same tab.
-      window.open(`${data.fileUrl}?download=1`, "_blank", "noopener,noreferrer");
+      setLastResult((prev) => {
+        if (prev) URL.revokeObjectURL(prev.url);
+        return data;
+      });
+      triggerDownload(data.url, data.fileName);
+      toast.success(`${data.format.toUpperCase()} downloaded (${formatBytes(data.size)}).`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -66,8 +89,7 @@ export function ExportDialog({ resumeId, open, onOpenChange }: ExportDialogProps
         <DialogHeader>
           <DialogTitle>Export resume</DialogTitle>
           <DialogDescription>
-            Generate a downloadable file from your resume. Exporting counts
-            against your 10/hour generation limit.
+            Download your resume with the current template and theme.
           </DialogDescription>
         </DialogHeader>
 
@@ -113,9 +135,8 @@ export function ExportDialog({ resumeId, open, onOpenChange }: ExportDialogProps
           <div className="text-xs text-muted-foreground">
             Last export: <a
               className="text-emerald-600 hover:underline"
-              href={`${lastResult.fileUrl}?download=1`}
-              target="_blank"
-              rel="noopener noreferrer"
+              href={lastResult.url}
+              download={lastResult.fileName}
             >
               {lastResult.fileName}
             </a>{" "}

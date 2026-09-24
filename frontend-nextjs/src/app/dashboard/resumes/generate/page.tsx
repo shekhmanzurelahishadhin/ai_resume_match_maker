@@ -8,7 +8,7 @@ import { apiGetOrNull } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
-import { TemplatePicker } from "@/components/resume-builder/template-picker";
+import { TemplateGallery } from "@/components/resume-builder/template-gallery";
 import { DeleteResumeButton } from "@/components/resume-builder/delete-resume-button";
 
 export const dynamic = "force-dynamic";
@@ -123,51 +123,12 @@ export default async function GeneratedResumesPage() {
       <div>
         <h2 className="text-lg font-semibold mb-3">Pick a template</h2>
         <p className="text-sm text-muted-foreground mb-4">
-          Browse the 6 available templates. Click any card to start a new resume
-          from that template.
+          {`Browse the ${templates.length} available templates. `}
+          Click any card to start a new resume from that template — you can
+          switch templates and colours later from the editor&apos;s Design tab.
         </p>
-        <TemplatePickerForNew templates={templates} />
+        <TemplateGallery />
       </div>
-    </div>
-  );
-}
-
-/**
- * Server-side wrapper that turns the picked template id into a link to the
- * "new resume" page with `?templateId=...` prefilled.
- * (The interactive TemplatePicker is a client component — we just give it
- *  a `onChange` that navigates.)
- */
-function TemplatePickerForNew({
-  templates,
-}: {
-  templates: { id: string; slug: string; name: string; description: string }[];
-}) {
-  // Use a client-side picker, but route on click. Since TemplatePicker is a
-  // controlled client component, we wrap it in a tiny client wrapper that
-  // handles the navigation. For simplicity here, we render clickable cards.
-  return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {templates.map((t) => (
-        <Button
-          key={t.id}
-          asChild
-          variant="outline"
-          className="h-auto p-0 text-left overflow-hidden border-2 hover:border-emerald-300 hover:shadow-md transition-all"
-        >
-          <Link href={`/dashboard/resumes/generate/new?templateId=${t.id}`}>
-            <div className="w-full p-3 bg-card">
-              <p className="text-sm font-semibold">{t.name}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                {t.description}
-              </p>
-              <p className="text-xs text-emerald-600 mt-2 font-medium">
-                Start with this template →
-              </p>
-            </div>
-          </Link>
-        </Button>
-      ))}
     </div>
   );
 }

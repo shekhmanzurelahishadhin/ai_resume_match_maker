@@ -96,7 +96,7 @@ function NewResumePageInner() {
 
       <div>
         <h2 className="text-base font-semibold mb-2">1. Choose a template</h2>
-        <TemplatePicker value={templateId} onChange={setTemplateId} />
+        <TemplatePicker value={templateId} onChange={(t) => setTemplateId(t.id)} />
       </div>
 
       <Card>

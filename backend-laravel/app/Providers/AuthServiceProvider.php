@@ -3,11 +3,13 @@
 namespace App\Providers;
 
 use App\Models\GeneratedResume;
+use App\Models\JobApplication;
 use App\Models\JobMatch;
 use App\Models\JobPost;
 use App\Models\Notification;
 use App\Models\Resume;
 use App\Policies\GeneratedResumePolicy;
+use App\Policies\JobApplicationPolicy;
 use App\Policies\JobPolicy;
 use App\Policies\MatchPolicy;
 use App\Policies\NotificationPolicy;
@@ -26,6 +28,7 @@ class AuthServiceProvider extends ServiceProvider
         Resume::class => ResumePolicy::class,
         JobPost::class => JobPolicy::class,
         JobMatch::class => MatchPolicy::class,
+        JobApplication::class => JobApplicationPolicy::class,
         GeneratedResume::class => GeneratedResumePolicy::class,
         Notification::class => NotificationPolicy::class,
     ];

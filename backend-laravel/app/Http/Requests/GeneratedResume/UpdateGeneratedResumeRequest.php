@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\GeneratedResume;
 
+use App\Services\ResumeTemplateRenderer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateGeneratedResumeRequest extends FormRequest
@@ -15,8 +16,8 @@ class UpdateGeneratedResumeRequest extends FormRequest
     {
         return [
             'contentJson' => ['sometimes', 'array'],
-            'customizationJson' => ['sometimes', 'array'],
             'templateId' => ['sometimes', 'string', 'uuid'],
+            ...ResumeTemplateRenderer::customizationRules(),
         ];
     }
 }

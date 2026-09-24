@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { SkillBadge } from "@/components/skill-badge";
 import { AiSourceBadge } from "@/components/ai-source-badge";
 import { EmptyState } from "@/components/empty-state";
@@ -185,13 +186,16 @@ export default function SeekerMatchesPage() {
                         Analyzed <ArrowUpDown className="size-3" />
                       </span>
                     </th>
+                    <th className="px-4 py-2.5 font-medium text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filtered.map((m) => (
                     <tr key={m.id} className="hover:bg-muted/40 align-top">
                       <td className="px-4 py-3">
-                        <p className="font-medium">{m.job.title}</p>
+                        <Link href={`/dashboard/jobs/${m.job.id}`} className="font-medium hover:underline">
+                          {m.job.title}
+                        </Link>
                         {m.resumeId ? (
                           <Link
                             href={`/dashboard/seeker/resumes/${m.resumeId}`}
@@ -233,6 +237,11 @@ export default function SeekerMatchesPage() {
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(m.analyzedAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/dashboard/jobs/${m.job.id}`}>View & apply</Link>
+                        </Button>
                       </td>
                     </tr>
                   ))}

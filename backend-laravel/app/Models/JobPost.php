@@ -21,6 +21,12 @@ class JobPost extends Model
     protected $fillable = [
         'recruiter_id',
         'title',
+        'company',
+        'location',
+        'employment_type',
+        'work_mode',
+        'experience_level',
+        'salary_range',
         'description',
         'required_skills_json',
         'is_active',
@@ -44,6 +50,11 @@ class JobPost extends Model
     public function matches(): HasMany
     {
         return $this->hasMany(JobMatch::class, 'job_post_id');
+    }
+
+    public function applications(): HasMany
+    {
+        return $this->hasMany(JobApplication::class, 'job_post_id');
     }
 
     public function getRequiredSkillsAttribute(): array

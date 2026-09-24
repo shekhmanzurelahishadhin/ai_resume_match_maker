@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\GeneratedResume;
 
+use App\Services\ResumeTemplateRenderer;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreGeneratedResumeRequest extends FormRequest
@@ -16,9 +17,9 @@ class StoreGeneratedResumeRequest extends FormRequest
         return [
             'originalResumeId' => ['sometimes', 'string', 'uuid'],
             'templateId' => ['required_without:templateSlug', 'string', 'uuid'],
-            'templateSlug' => ['sometimes', 'string', 'in:modern-clean,professional-classic,creative,executive,technical,academic'],
+            'templateSlug' => ['sometimes', 'string', 'in:'.implode(',', ResumeTemplateRenderer::knownSlugs())],
             'contentJson' => ['sometimes', 'array'],
-            'customizationJson' => ['sometimes', 'array'],
+            ...ResumeTemplateRenderer::customizationRules(),
         ];
     }
 }

@@ -2,8 +2,8 @@
 
 // Role-aware dashboard sidebar.
 //
-// Seeker nav : Overview · My Resumes · My Matches · Settings
-// Recruiter nav: Overview · My Jobs · Candidates · Settings
+// Seeker nav : Overview · Find Jobs · Matches · Applications · Messages · Resumes · Builder · …
+// Recruiter nav: Overview · My Jobs · Applicants · Candidates · Messages · …
 //
 // On mobile: rendered inside a Sheet (drawer) triggered by the header menu button.
 // On desktop: a fixed 16rem column on the left.
@@ -25,7 +25,12 @@ import {
   Moon,
   Wand2,
   Bell,
+  Search,
+  Send,
+  Inbox,
+  MessageSquare,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { signOut, useSession } from "next-auth/react";
 import { useTheme } from "next-themes";
 
@@ -46,13 +51,17 @@ interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
   match?: (path: string) => boolean;
+  badge?: "messages";
 }
 
 const SEEKER_NAV: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
-  { label: "My Resumes", href: "/dashboard/seeker/resumes", icon: FileText, match: (p) => p.startsWith("/dashboard/seeker/resumes") && !p.startsWith("/dashboard/resumes/generate") },
-  { label: "Resume Builder", href: "/dashboard/resumes/generate", icon: Wand2, match: (p) => p.startsWith("/dashboard/resumes/generate") },
+  { label: "Find Jobs", href: "/dashboard/jobs", icon: Search, match: (p) => p.startsWith("/dashboard/jobs") },
   { label: "My Matches", href: "/dashboard/seeker/matches", icon: Target, match: (p) => p.startsWith("/dashboard/seeker/matches") },
+  { label: "Applications", href: "/dashboard/seeker/applications", icon: Send, match: (p) => p.startsWith("/dashboard/seeker/applications") },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, match: (p) => p.startsWith("/dashboard/messages"), badge: "messages" },
+  { label: "My Resumes", href: "/dashboard/seeker/resumes", icon: FileText, match: (p) => p.startsWith("/dashboard/seeker/resumes") },
+  { label: "Resume Builder", href: "/dashboard/resumes/generate", icon: Wand2, match: (p) => p.startsWith("/dashboard/resumes/generate") },
   { label: "Notifications", href: "/dashboard/notifications", icon: Bell, match: (p) => p.startsWith("/dashboard/notifications") },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, match: (p) => p.startsWith("/dashboard/settings") },
 ];
@@ -60,11 +69,29 @@ const SEEKER_NAV: NavItem[] = [
 const RECRUITER_NAV: NavItem[] = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
   { label: "My Jobs", href: "/dashboard/recruiter/jobs", icon: Briefcase, match: (p) => p.startsWith("/dashboard/recruiter/jobs") },
+  { label: "Applicants", href: "/dashboard/recruiter/applicants", icon: Inbox, match: (p) => p.startsWith("/dashboard/recruiter/applicants") },
   { label: "Candidates", href: "/dashboard/recruiter/candidates", icon: Users, match: (p) => p.startsWith("/dashboard/recruiter/candidates") },
+  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare, match: (p) => p.startsWith("/dashboard/messages"), badge: "messages" },
   { label: "Resume Builder", href: "/dashboard/resumes/generate", icon: Wand2, match: (p) => p.startsWith("/dashboard/resumes/generate") },
   { label: "Notifications", href: "/dashboard/notifications", icon: Bell, match: (p) => p.startsWith("/dashboard/notifications") },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, match: (p) => p.startsWith("/dashboard/settings") },
 ];
+
+/** Unread message count for the sidebar badge (polled). */
+function useUnreadMessages(enabled: boolean) {
+  const q = useQuery({
+    queryKey: ["messages-unread"],
+    queryFn: async () => {
+      const res = await fetch("/api/conversations/unread-count");
+      if (!res.ok) return 0;
+      const json = await res.json();
+      return (json?.data?.count as number) ?? 0;
+    },
+    enabled,
+    refetchInterval: 30_000,
+  });
+  return q.data ?? 0;
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -74,6 +101,7 @@ export function AppSidebar() {
 
   const role = (session?.user as { role?: string } | undefined)?.role ?? "seeker";
   const nav = role === "recruiter" ? RECRUITER_NAV : SEEKER_NAV;
+  const unreadMessages = useUnreadMessages(!!session);
   const userName = session?.user?.name ?? "User";
   const userEmail = session?.user?.email ?? "";
   const initials = userName
@@ -102,6 +130,11 @@ export function AppSidebar() {
           >
             <Icon className="size-4 shrink-0" />
             <span className="truncate">{item.label}</span>
+            {item.badge === "messages" && unreadMessages > 0 ? (
+              <span className="ml-auto rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white tabular-nums">
+                {unreadMessages > 99 ? "99+" : unreadMessages}
+              </span>
+            ) : null}
           </Link>
         );
       })}

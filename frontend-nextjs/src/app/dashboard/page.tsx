@@ -11,6 +11,9 @@ import {
   Users,
   TrendingUp,
   ArrowRight,
+  Inbox,
+  Search,
+  Send,
 } from "lucide-react";
 
 import { apiGetOrNull } from "@/lib/server-api";
@@ -19,6 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AiSourceBadge } from "@/components/ai-source-badge";
 import { EmptyState } from "@/components/empty-state";
+import { Badge } from "@/components/ui/badge";
+import { APPLICATION_STATUS_STYLES, type ApplicationStatus } from "@/lib/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +34,19 @@ interface RecruiterOverview {
     activeJobCount: number;
     candidateCount: number;
     topMatchPercentage: number;
+    applicationCount: number;
+    newApplicationCount: number;
   };
+  recentApplications: Array<{
+    id: string;
+    candidateName: string | null;
+    jobId: string;
+    jobTitle: string | null;
+    status: ApplicationStatus;
+    statusLabel: string;
+    matchPercentage: number | null;
+    appliedAt: string | null;
+  }>;
   recentJobs: Array<{
     id: string;
     title: string;
@@ -45,6 +62,7 @@ interface SeekerOverview {
     resumeCount: number;
     matchCount: number;
     avgMatchPercentage: number;
+    applicationCount: number;
   };
   recentResumes: Array<{
     id: string;
@@ -86,7 +104,7 @@ export default async function DashboardPage() {
   }
 
   if (overview.role === "recruiter") {
-    const { stats, recentJobs } = overview;
+    const { stats, recentJobs, recentApplications } = overview;
 
     return (
       <div className="space-y-6">
@@ -105,9 +123,14 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Briefcase} label="Total jobs" value={stats.jobCount} accent="emerald" />
-          <StatCard icon={Briefcase} label="Active jobs" value={stats.activeJobCount} accent="teal" />
-          <StatCard icon={Users} label="Candidates" value={stats.candidateCount} accent="amber" />
+          <StatCard icon={Briefcase} label={`Open jobs (of ${stats.jobCount})`} value={stats.activeJobCount} accent="emerald" />
+          <StatCard icon={Users} label="Matched candidates" value={stats.candidateCount} accent="teal" />
+          <StatCard
+            icon={Inbox}
+            label={stats.newApplicationCount > 0 ? `Applications · ${stats.newApplicationCount} new` : "Applications"}
+            value={stats.applicationCount}
+            accent="amber"
+          />
           <StatCard
             icon={TrendingUp}
             label="Top match"
@@ -116,9 +139,13 @@ export default async function DashboardPage() {
           />
         </div>
 
+        <div className="grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row items-center justify-between">
             <CardTitle className="text-base">Recent jobs</CardTitle>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/dashboard/recruiter/jobs">View all</Link>
+            </Button>
           </CardHeader>
           <CardContent>
             {recentJobs.length === 0 ? (
@@ -141,7 +168,7 @@ export default async function DashboardPage() {
                         {job.title}
                       </Link>
                       <p className="text-xs text-muted-foreground">
-                        {job.candidateCount} candidates ·{" "}
+                        {job.candidateCount} matched ·{" "}
                         {job.isActive ? "Active" : "Closed"} ·{" "}
                         {formatDate(job.createdAt)}
                       </p>
@@ -155,6 +182,51 @@ export default async function DashboardPage() {
             )}
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle className="text-base">Latest applications</CardTitle>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/dashboard/recruiter/applicants">View all</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {recentApplications.length === 0 ? (
+              <EmptyState
+                icon={Inbox}
+                title="No applications yet"
+                description="Contact your top matched candidates to invite them to apply."
+              />
+            ) : (
+              <ul className="divide-y">
+                {recentApplications.map((a) => (
+                  <li key={a.id} className="py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{a.candidateName}</p>
+                      <Link
+                        href={`/dashboard/recruiter/jobs/${a.jobId}?tab=applicants`}
+                        className="text-xs text-muted-foreground hover:underline truncate block"
+                      >
+                        {a.jobTitle} · {formatDate(a.appliedAt)}
+                      </Link>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {a.matchPercentage != null ? (
+                        <span className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                          {Math.round(a.matchPercentage)}%
+                        </span>
+                      ) : null}
+                      <Badge variant="outline" className={APPLICATION_STATUS_STYLES[a.status]}>
+                        {a.statusLabel}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+        </div>
       </div>
     );
   }
@@ -171,15 +243,21 @@ export default async function DashboardPage() {
             Your resumes and best matches at a glance.
           </p>
         </div>
-        <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
-          <Link href="/dashboard/seeker/resumes">
-            Upload resume <ArrowRight className="size-4" />
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/dashboard/seeker/resumes">Upload resume</Link>
+          </Button>
+          <Button asChild className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Link href="/dashboard/jobs">
+              <Search className="size-4" /> Find jobs <ArrowRight className="size-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={FileText} label="My resumes" value={stats.resumeCount} accent="emerald" />
+        <StatCard icon={Send} label="Applications" value={stats.applicationCount} accent="teal" />
         <StatCard icon={Target} label="Matches" value={stats.matchCount} accent="teal" />
         <StatCard
           icon={TrendingUp}
@@ -248,7 +326,12 @@ export default async function DashboardPage() {
                 {topMatches.map((m) => (
                   <li key={m.id} className="py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{m.jobPost.title}</p>
+                      <Link
+                        href={`/dashboard/jobs/${m.jobPost.id}`}
+                        className="text-sm font-medium hover:underline truncate block"
+                      >
+                        {m.jobPost.title}
+                      </Link>
                       <p className="text-xs text-muted-foreground">
                         {m.jobPost.recruiterName} · {formatDate(m.analyzedAt)}
                       </p>

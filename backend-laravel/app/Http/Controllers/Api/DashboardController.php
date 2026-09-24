@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Enums\UserRole;
 use App\Http\Controllers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Enums\ApplicationStatus;
+use App\Models\JobApplication;
 use App\Models\JobMatch;
 use App\Models\JobPost;
 use App\Models\Resume;
@@ -44,6 +46,8 @@ class DashboardController extends Controller
     private function recruiterOverview(User $user): array
     {
         $matches = JobMatch::where('recruiter_id', $user->id);
+        $applications = JobApplication::whereHas('jobPost', fn ($q) => $q->where('recruiter_id', $user->id))
+            ->where('status', '!=', ApplicationStatus::Withdrawn->value);
 
         $recentJobs = JobPost::where('recruiter_id', $user->id)
             ->withCount('matches')
@@ -60,7 +64,24 @@ class DashboardController extends Controller
                     ->count(),
                 'candidateCount' => (clone $matches)->count(),
                 'topMatchPercentage' => round((float) ((clone $matches)->max('match_percentage') ?? 0), 2),
+                'applicationCount' => (clone $applications)->count(),
+                'newApplicationCount' => (clone $applications)->where('status', ApplicationStatus::Applied->value)->count(),
             ],
+            'recentApplications' => (clone $applications)
+                ->with(['seeker:id,name', 'jobPost:id,title'])
+                ->orderByDesc('created_at')
+                ->limit(self::RECENT_LIMIT)
+                ->get()
+                ->map(fn (JobApplication $a) => [
+                    'id' => $a->id,
+                    'candidateName' => $a->seeker?->name,
+                    'jobId' => $a->job_post_id,
+                    'jobTitle' => $a->jobPost?->title,
+                    'status' => $a->status->value,
+                    'statusLabel' => $a->status->label(),
+                    'matchPercentage' => $a->match_percentage,
+                    'appliedAt' => $a->created_at?->toIso8601String(),
+                ])->all(),
             'recentJobs' => $recentJobs->map(fn (JobPost $job) => [
                 'id' => $job->id,
                 'title' => $job->title,
@@ -96,6 +117,8 @@ class DashboardController extends Controller
                 'resumeCount' => Resume::where('user_id', $user->id)->count(),
                 'matchCount' => (clone $matches)->count(),
                 'avgMatchPercentage' => round((float) ((clone $matches)->avg('match_percentage') ?? 0), 2),
+                'applicationCount' => JobApplication::where('seeker_id', $user->id)
+                    ->where('status', '!=', ApplicationStatus::Withdrawn->value)->count(),
             ],
             'recentResumes' => $recentResumes->map(fn (Resume $resume) => [
                 'id' => $resume->id,

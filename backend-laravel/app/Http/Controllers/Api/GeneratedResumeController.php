@@ -19,6 +19,8 @@ use App\Services\ResumeTemplateRenderer;
 use App\Services\StorageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
 class GeneratedResumeController extends Controller
@@ -165,7 +167,12 @@ class GeneratedResumeController extends Controller
         return $this->ok(['html' => $html]);
     }
 
-    public function export(ExportRequest $request, GeneratedResume $generatedResume): JsonResponse
+    /**
+     * Render the resume and send it back as a file download. The copy kept in
+     * private storage is never exposed by URL; the local disk has no signed
+     * URLs, and a public link would leak other users' resumes.
+     */
+    public function export(ExportRequest $request, GeneratedResume $generatedResume): Response
     {
         $this->authorize('export', $generatedResume);
         $format = $request->validated()['format'];
@@ -179,7 +186,6 @@ class GeneratedResumeController extends Controller
         $key = $this->storage->generatedResumeKey($generatedResume->user_id, $generatedResume->id, $format);
         $this->storage->saveContent($key, $bytes);
 
-        // Persist the path on the model.
         $column = match ($format) {
             'html' => 'file_path_html',
             'pdf' => 'file_path_pdf',
@@ -188,18 +194,19 @@ class GeneratedResumeController extends Controller
         $generatedResume->{$column} = $key;
         $generatedResume->save();
 
-        $url = $this->storage->getSignedUrl($key);
-        $response = [
-            'format' => $format,
-            'url' => $url,
-            'path' => $key,
-            'expiresAt' => now()->addMinutes(15)->toIso8601String(),
-        ];
-        if ($format === 'docx') {
-            $response['caveat'] = $this->renderer->docxCaveat();
-        }
+        $mime = match ($format) {
+            'html' => 'text/html; charset=UTF-8',
+            'pdf' => 'application/pdf',
+            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        };
+        $name = Str::slug(data_get($generatedResume->content_json, 'contact.name') ?: 'resume') ?: 'resume';
 
-        return $this->ok($response);
+        return response($bytes, 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => sprintf('attachment; filename="%s-resume.%s"', $name, $format),
+            'Cache-Control' => 'no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function enhance(EnhanceRequest $request, GeneratedResume $generatedResume, AiService $hf): JsonResponse

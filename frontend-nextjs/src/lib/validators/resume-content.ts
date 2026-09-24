@@ -79,13 +79,37 @@ export const resumeContentSchema = z.object({
 });
 export type ResumeContent = z.infer<typeof resumeContentSchema>;
 
+// Older saves (and AI output) can carry `null` for blank fields. Treat null as
+// "missing" so the schema defaults fill in "" / [] instead of failing.
+function dropNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.filter((v) => v !== null).map(dropNulls);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([, v]) => v !== null)
+        .map(([k, v]) => [k, dropNulls(v)]),
+    );
+  }
+  return value;
+}
+
+export function parseResumeContent(raw: unknown) {
+  return resumeContentSchema.safeParse(dropNulls(raw));
+}
+
+// Theme overrides applied on top of a template. Mirrors the rules in
+// ResumeTemplateRenderer::customizationRules() on the Laravel side; any key
+// left out means "use the template's default".
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Use a #rrggbb colour");
+
 export const customizationSchema = z
   .object({
-    primaryColor: z.string().max(20).optional(),
-    accentColor: z.string().max(20).optional(),
-    headingFont: z.string().max(80).optional(),
-    bodyFont: z.string().max(80).optional(),
+    primaryColor: hexColor.optional(),
+    accentColor: hexColor.optional(),
+    headingFont: z.enum(["sans", "modern", "serif", "mono"]).optional(),
+    bodyFont: z.enum(["sans", "modern", "serif", "mono"]).optional(),
     spacing: z.enum(["compact", "normal", "relaxed"]).optional(),
+    fontSize: z.enum(["small", "medium", "large"]).optional(),
   })
   .optional()
   .default({});

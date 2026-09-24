@@ -24,6 +24,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        // Resume content is a free-form document where "" means "left blank".
+        // Turning those into null made the stored JSON fail the frontend's
+        // string schema, so the editor 404'd after saving any empty field.
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request) => $request->is('api/resumes/generate', 'api/resumes/generate/*'),
+        ]);
+
         // Custom middleware aliases (§8 rate limits + role guard + admin secret).
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,

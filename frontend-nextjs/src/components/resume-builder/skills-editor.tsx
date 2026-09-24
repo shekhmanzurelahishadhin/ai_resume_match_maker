@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ResumeFormValues } from "./resume-form";
+import { ListField } from "./list-field";
 
 interface Props {
   control: Control<ResumeFormValues>;
@@ -63,18 +64,10 @@ export function SkillsEditor({ control, register, errors }: Props) {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Items (comma-separated)</Label>
-                <Input
-                  {...register(`skills.${index}.items` as const)}
-                  setValueAs={(v) =>
-                    typeof v === "string"
-                      ? v
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean)
-                      : Array.isArray(v)
-                        ? v
-                        : []
-                  }
+                <ListField
+                  control={control}
+                  name={`skills.${index}.items` as const}
+                  mode="comma"
                   placeholder="TypeScript, Python, Go"
                 />
               </div>

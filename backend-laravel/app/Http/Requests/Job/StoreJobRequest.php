@@ -13,12 +13,6 @@ class StoreJobRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
-            'title' => ['required', 'string', 'min:1', 'max:200'],
-            'description' => ['required', 'string', 'min:1', 'max:8000'],
-            'requiredSkills' => ['sometimes', 'array'],
-            'requiredSkills.*' => ['string', 'max:80'],
-            'isActive' => ['sometimes', 'boolean'],
-        ];
+        return JobRules::rules('required');
     }
 }

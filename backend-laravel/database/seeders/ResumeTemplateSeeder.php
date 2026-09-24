@@ -3,58 +3,28 @@
 namespace Database\Seeders;
 
 use App\Models\ResumeTemplate;
+use App\Services\ResumeTemplateRenderer;
 use Illuminate\Database\Seeder;
 
+/**
+ * One row per template the renderer can draw.
+ *
+ * Names and descriptions come from ResumeTemplateRenderer::TEMPLATES so the
+ * database and the Blade views cannot drift apart. updateOrCreate (not
+ * firstOrCreate) so re-running the seeder refreshes descriptions after a
+ * template is redesigned.
+ */
 class ResumeTemplateSeeder extends Seeder
 {
-    private const TEMPLATES = [
-        [
-            'slug' => 'modern-clean',
-            'name' => 'Modern Clean',
-            'description' => 'Modern Clean — Minimalist single-column with clear typography hierarchy',
-            'preview_image' => '/templates/modern-clean.png',
-        ],
-        [
-            'slug' => 'professional-classic',
-            'name' => 'Professional Classic',
-            'description' => 'Professional Classic — Traditional serif, two-column with sidebar',
-            'preview_image' => '/templates/professional-classic.png',
-        ],
-        [
-            'slug' => 'creative',
-            'name' => 'Creative',
-            'description' => 'Creative — Bold accents and asymmetric layout for design roles',
-            'preview_image' => '/templates/creative.png',
-        ],
-        [
-            'slug' => 'executive',
-            'name' => 'Executive',
-            'description' => 'Executive — Compact, dense, executive-level format with summary on top',
-            'preview_image' => '/templates/executive.png',
-        ],
-        [
-            'slug' => 'technical',
-            'name' => 'Technical',
-            'description' => 'Technical — Skills-forward layout emphasizing tech stack',
-            'preview_image' => '/templates/technical.png',
-        ],
-        [
-            'slug' => 'academic',
-            'name' => 'Academic',
-            'description' => 'Academic — Citation-friendly format for researchers and academics',
-            'preview_image' => '/templates/academic.png',
-        ],
-    ];
-
     public function run(): void
     {
-        foreach (self::TEMPLATES as $t) {
-            ResumeTemplate::firstOrCreate(
-                ['slug' => $t['slug']],
+        foreach (ResumeTemplateRenderer::TEMPLATES as $slug => $template) {
+            ResumeTemplate::updateOrCreate(
+                ['slug' => $slug],
                 [
-                    'name' => $t['name'],
-                    'description' => $t['description'],
-                    'preview_image' => $t['preview_image'],
+                    'name' => $template['name'],
+                    'description' => $template['description'],
+                    'preview_image' => "/templates/{$slug}.png",
                     'is_active' => true,
                 ],
             );

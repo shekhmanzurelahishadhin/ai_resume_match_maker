@@ -32,6 +32,8 @@ class CandidateResource extends JsonResource
             'matchedSkills' => $this->matched_skills,
             'missingSkills' => $this->missing_skills,
             'analyzedAt' => $this->analyzed_at?->toIso8601String(),
+            'application' => $this->getAttribute('application_info'),
+            'conversationId' => $this->getAttribute('conversation_id'),
             'resume' => [
                 'id' => $resume->id,
                 'fileName' => $resume->file_name,

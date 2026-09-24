@@ -68,7 +68,7 @@ export default async function CandidatesPage({
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Candidates</h1>
         <p className="text-sm text-muted-foreground">
-          Pick a job to view its ranked candidates.
+          Pick a job to see its ranked candidates, then contact the ones you like.
         </p>
       </div>
 
@@ -110,8 +110,13 @@ export default async function CandidatesPage({
         </Card>
 
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold mb-3">{selected.title}</h2>
-          <CandidateList key={selected.id} jobId={selected.id} />
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-semibold">{selected.title}</h2>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/dashboard/recruiter/jobs/${selected.id}?tab=applicants`}>Open job workspace</Link>
+            </Button>
+          </div>
+          <CandidateList key={selected.id} jobId={selected.id} jobTitle={selected.title} />
         </div>
       </div>
     </div>
