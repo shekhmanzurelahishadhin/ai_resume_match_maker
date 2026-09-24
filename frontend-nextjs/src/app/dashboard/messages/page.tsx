@@ -78,14 +78,21 @@ function Messages() {
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className={cn(activeId && "hidden md:block")}>
         <h1 className="text-2xl font-bold tracking-tight">Messages</h1>
         <p className="text-sm text-muted-foreground">Conversations between recruiters and candidates.</p>
       </div>
 
-      <Card className="grid h-[calc(100vh-11rem)] min-h-[480px] overflow-hidden p-0 gap-0 md:grid-cols-[300px_1fr]">
+      <Card
+        className={cn(
+          "grid grid-cols-[minmax(0,1fr)] overflow-hidden p-0 gap-0 md:grid-cols-[300px_minmax(0,1fr)]",
+          // Phones: fill the screen under the app bar; a thread gets the extra header space.
+          activeId ? "h-[calc(100dvh-6.75rem)]" : "h-[calc(100dvh-10rem)]",
+          "min-h-[420px] md:h-[calc(100vh-11rem)] md:min-h-[480px]",
+        )}
+      >
         {/* Conversation list */}
-        <div className={cn("border-r flex-col min-h-0", activeId ? "hidden md:flex" : "flex")}>
+        <div className={cn("min-w-0 flex-col min-h-0 md:border-r", activeId ? "hidden md:flex" : "flex")}>
           <div className="flex-1 overflow-y-auto">
             {list.isLoading ? (
               <div className="space-y-2 p-3">
@@ -110,7 +117,7 @@ function Messages() {
                           {initials(c.otherParty.name ?? "?")}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="min-w-0 flex-1">
+                      <span className="min-w-0 flex-1 overflow-hidden">
                         <span className="flex items-center justify-between gap-2">
                           <span className={cn("text-sm truncate", c.unreadCount > 0 ? "font-semibold" : "font-medium")}>
                             {c.otherParty.name}
@@ -145,7 +152,7 @@ function Messages() {
         </div>
 
         {/* Thread */}
-        <div className={cn("min-h-0 flex-col", activeId ? "flex" : "hidden md:flex")}>
+        <div className={cn("min-w-0 min-h-0 flex-col", activeId ? "flex" : "hidden md:flex")}>
           {activeId ? (
             <Thread key={activeId} id={activeId} onBack={() => open(null)} />
           ) : (
@@ -241,7 +248,7 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
 
   return (
     <>
-      <div className="flex items-center gap-3 border-b px-4 py-3">
+      <div className="flex items-center gap-3 border-b px-3 py-2.5 md:px-4 md:py-3">
         <Button variant="ghost" size="icon" className="md:hidden -ml-2" onClick={onBack} aria-label="Back">
           <ArrowLeft className="size-4" />
         </Button>
@@ -250,28 +257,28 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
             {initials(c.otherParty.name ?? "?")}
           </AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="font-semibold truncate">{c.otherParty.name}</p>
           {c.job && jobHref ? (
-            <Link href={jobHref} className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-1">
-              <Briefcase className="size-3" /> {c.job.title}
+            <Link href={jobHref} className="text-xs text-muted-foreground hover:underline flex items-center gap-1 min-w-0">
+              <Briefcase className="size-3 shrink-0" /> <span className="truncate">{c.job.title}</span>
             </Link>
           ) : null}
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto bg-muted/20 px-4 py-4">
+      <div className="flex-1 space-y-3 overflow-y-auto bg-muted/20 px-3 py-4 md:px-4">
         {messages.map((m) => (
           <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
             <div
               className={cn(
-                "max-w-[80%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
+                "max-w-[85%] min-w-0 rounded-2xl px-3.5 py-2 text-sm shadow-sm md:max-w-[75%]",
                 m.mine
                   ? "rounded-br-sm bg-emerald-600 text-white"
                   : "rounded-bl-sm bg-background border",
               )}
             >
-              <p className="whitespace-pre-wrap break-words">{m.body}</p>
+              <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</p>
               <p className={cn("mt-1 text-[10px]", m.mine ? "text-emerald-100" : "text-muted-foreground")}>
                 {new Date(m.createdAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
                 {m.mine && m.readAt ? " · Seen" : ""}
@@ -283,7 +290,7 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
       </div>
 
       <form
-        className="flex items-end gap-2 border-t p-3"
+        className="flex items-end gap-2 border-t p-2 md:p-3"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
@@ -300,7 +307,7 @@ function Thread({ id, onBack }: { id: string; onBack: () => void }) {
           }}
           rows={1}
           maxLength={5000}
-          placeholder="Write a message… (Enter to send, Shift+Enter for a new line)"
+          placeholder="Write a message…"
           className="min-h-10 max-h-40 resize-none"
           aria-label="Message"
         />
