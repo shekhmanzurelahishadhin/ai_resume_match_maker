@@ -293,7 +293,7 @@ export default function SettingsPage() {
                 Email changes are not supported.
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-5">
               <Label>Role</Label>
               <Badge
                 variant="outline"
