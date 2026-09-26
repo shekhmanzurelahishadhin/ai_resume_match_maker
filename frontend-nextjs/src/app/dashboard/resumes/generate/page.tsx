@@ -68,13 +68,13 @@ export default async function GeneratedResumesPage() {
       {resumes.length > 0 ? (
         <div>
           <h2 className="text-lg font-semibold mb-3">Your generated resumes</h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="stagger grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {resumes.map((r) => {
               const content = r.contentJson;
               const name = content?.contact?.name?.trim() || "Untitled";
               const email = content?.contact?.email?.trim() || "";
               return (
-                <Card key={r.id} className="hover:shadow-md transition-shadow">
+                <Card key={r.id} className="card-hover">
                   <CardHeader className="py-3">
                     <CardTitle className="text-base truncate">{name}</CardTitle>
                     <CardDescription className="truncate">

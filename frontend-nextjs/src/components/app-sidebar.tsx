@@ -20,9 +20,6 @@ import {
   Users,
   LogOut,
   Menu,
-  FileSearch,
-  Sun,
-  Moon,
   Wand2,
   Bell,
   Search,
@@ -32,7 +29,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { signOut, useSession } from "next-auth/react";
-import { useTheme } from "next-themes";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -45,6 +42,8 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { BrandLogo } from "@/components/brand-logo";
 
 interface NavItem {
   label: string;
@@ -96,7 +95,6 @@ function useUnreadMessages(enabled: boolean) {
 export function AppSidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
 
   const role = (session?.user as { role?: string } | undefined)?.role ?? "seeker";
@@ -112,8 +110,13 @@ export function AppSidebar() {
     .join("")
     .toUpperCase();
 
-  const NavList = (
-    <nav className="flex flex-col gap-1 px-3 py-2">
+  // Separate layoutIds so the mobile drawer and desktop column don't try to
+  // animate the active pill between each other.
+  const renderNav = (layoutId: string) => (
+    <nav className="flex flex-col gap-0.5 px-3 py-2">
+      <p className="px-3 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+        Menu
+      </p>
       {nav.map((item) => {
         const isActive = item.match ? item.match(pathname) : pathname === item.href;
         const Icon = item.icon;
@@ -123,16 +126,39 @@ export function AppSidebar() {
             href={item.href}
             onClick={() => setOpen(false)}
             className={cn(
-              "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              "hover:bg-accent hover:text-accent-foreground",
-              isActive && "bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-200",
+              "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              isActive
+                ? "text-emerald-900 dark:text-emerald-100"
+                : "text-muted-foreground hover:text-foreground hover:bg-accent/60",
             )}
           >
-            <Icon className="size-4 shrink-0" />
-            <span className="truncate">{item.label}</span>
+            {isActive ? (
+              <motion.span
+                layoutId={layoutId}
+                className="absolute inset-0 rounded-lg bg-gradient-to-r from-emerald-100 to-emerald-50 ring-1 ring-emerald-200/70 dark:from-emerald-500/20 dark:to-emerald-500/5 dark:ring-emerald-400/20"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            {isActive ? (
+              <motion.span
+                layoutId={`${layoutId}-bar`}
+                className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-emerald-500"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            ) : null}
+            <Icon
+              className={cn(
+                "relative size-4 shrink-0 transition-transform duration-200 group-hover:scale-110",
+                isActive && "text-emerald-600 dark:text-emerald-300",
+              )}
+            />
+            <span className="relative truncate">{item.label}</span>
             {item.badge === "messages" && unreadMessages > 0 ? (
-              <span className="ml-auto rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white tabular-nums">
-                {unreadMessages > 99 ? "99+" : unreadMessages}
+              <span className="relative ml-auto flex items-center">
+                <span className="absolute inset-0 animate-ping rounded-full bg-emerald-500/40" />
+                <span className="relative rounded-full bg-emerald-600 px-1.5 text-[10px] font-semibold text-white tabular-nums">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
               </span>
             ) : null}
           </Link>
@@ -143,9 +169,9 @@ export function AppSidebar() {
 
   const Footer = (
     <div className="border-t px-3 py-3 space-y-2">
-      <div className="flex items-center gap-3 px-2 py-1.5">
-        <Avatar className="size-8">
-          <AvatarFallback className="bg-emerald-100 text-emerald-900 text-xs dark:bg-emerald-900/40 dark:text-emerald-200">
+      <div className="flex items-center gap-3 rounded-xl border bg-card/60 px-2.5 py-2">
+        <Avatar className="size-9 ring-2 ring-emerald-500/30">
+          <AvatarFallback className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-xs font-semibold">
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -154,21 +180,12 @@ export function AppSidebar() {
           <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        <ThemeToggle withLabel className="flex-1" />
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1 justify-start"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          <Sun className="size-4 dark:hidden" />
-          <Moon className="size-4 hidden dark:block" />
-          Toggle theme
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex-1 justify-start text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+          className="flex-1 justify-start text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
           onClick={() => signOut({ callbackUrl: "/login" })}
         >
           <LogOut className="size-4" />
@@ -179,30 +196,16 @@ export function AppSidebar() {
   );
 
   const Brand = (
-    <Link href="/dashboard" className="flex items-center gap-2 px-5 py-4">
-      <div className="size-8 rounded-md bg-emerald-600 flex items-center justify-center text-white">
-        <FileSearch className="size-5" />
-      </div>
-      <div className="leading-tight">
-        <p className="text-sm font-semibold">Resume Matchmaker</p>
-        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          {role} workspace
-        </p>
-      </div>
-    </Link>
+    <BrandLogo href="/dashboard" subtitle={`${role} workspace`} className="px-5 py-4" />
   );
 
   return (
     <>
       {/* Mobile header with menu trigger */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-2 border-b bg-background px-4 py-2.5">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="size-7 rounded-md bg-emerald-600 flex items-center justify-center text-white">
-            <FileSearch className="size-4" />
-          </div>
-          <span className="text-sm font-semibold">Matchmaker</span>
-        </Link>
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between gap-2 border-b glass px-4 py-2.5">
+        <BrandLogo href="/dashboard" compact />
         <div className="flex items-center gap-1">
+          <ThemeToggle />
           <NotificationBell />
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
@@ -215,7 +218,7 @@ export function AppSidebar() {
                 <SheetTitle className="sr-only">Navigation</SheetTitle>
               </SheetHeader>
               {Brand}
-              <div className="flex-1 overflow-y-auto">{NavList}</div>
+              <div className="flex-1 overflow-y-auto">{renderNav("nav-active-mobile")}</div>
               {Footer}
             </SheetContent>
           </Sheet>
@@ -229,9 +232,9 @@ export function AppSidebar() {
         taller) page, leaving it nothing to stick within, so it just scrolled
         away with the content.
       */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:bg-sidebar md:text-sidebar-foreground shrink-0 md:sticky md:top-0 md:h-screen md:self-start">
+      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:bg-sidebar md:backdrop-blur-xl md:text-sidebar-foreground shrink-0 md:sticky md:top-0 md:h-screen md:self-start">
         {Brand}
-        <div className="flex-1 overflow-y-auto">{NavList}</div>
+        <div className="flex-1 overflow-y-auto">{renderNav("nav-active")}</div>
         {Footer}
       </aside>
     </>

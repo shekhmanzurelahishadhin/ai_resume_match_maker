@@ -22,11 +22,14 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <Card className={cn("border-dashed", className)}>
+    <Card className={cn("border-dashed shadow-none bg-card/60 animate-fade-up", className)}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         {Icon ? (
-          <div className="rounded-full bg-muted p-3 text-muted-foreground">
-            <Icon className="size-6" />
+          <div className="relative">
+            <div className="absolute inset-0 rounded-2xl bg-emerald-500/20 blur-xl" aria-hidden />
+            <div className="relative animate-float rounded-2xl border bg-gradient-to-br from-emerald-50 to-teal-50 p-3.5 text-emerald-600 dark:from-emerald-500/15 dark:to-teal-500/5 dark:text-emerald-300">
+              <Icon className="size-6" />
+            </div>
           </div>
         ) : null}
         <div className="space-y-1">

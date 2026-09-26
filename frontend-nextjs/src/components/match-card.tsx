@@ -31,7 +31,7 @@ function pctColor(pct: number) {
 
 export function MatchCard({ match, hrefBase }: { match: MatchCardData; hrefBase: MatchCardData["hrefBase"] }) {
   return (
-    <Card>
+    <Card className="card-hover">
       <CardContent className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">

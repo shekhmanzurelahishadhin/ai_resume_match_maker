@@ -115,7 +115,7 @@ export function ResumeCard({ resume }: { resume: ResumeCardData }) {
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="card-hover overflow-hidden">
       <ResumeStatusWatcher resumeId={resume.id} status={resume.status} />
       <CardContent className="space-y-3">
         <div className="flex items-start justify-between gap-3">

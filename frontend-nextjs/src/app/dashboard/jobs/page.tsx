@@ -119,7 +119,7 @@ export default function FindJobsPage() {
       </Card>
 
       {jobs.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-56 rounded-xl" />
           ))}
@@ -128,7 +128,7 @@ export default function FindJobsPage() {
         <EmptyState icon={SearchX} title="Couldn't load jobs" description={(jobs.error as Error).message} />
       ) : jobs.data && jobs.data.items.length > 0 ? (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {jobs.data.items.map((job) => (
               <JobListingCard key={job.id} job={job} />
             ))}
@@ -195,7 +195,7 @@ function FilterSelect({
 function JobListingCard({ job }: { job: JobListing }) {
   const pct = job.myMatch?.matchPercentage;
   return (
-    <Card className="flex flex-col transition-shadow hover:shadow-md">
+    <Card className="card-hover flex flex-col">
       <CardContent className="flex flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

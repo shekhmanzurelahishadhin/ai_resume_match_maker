@@ -84,7 +84,7 @@ export default function RecruiterJobsPage() {
       </div>
 
       {jobs.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-52 rounded-xl" />
           ))}
@@ -100,9 +100,9 @@ export default function RecruiterJobsPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {items.map((j) => (
-            <Card key={j.id} className="flex flex-col transition-shadow hover:shadow-md">
+            <Card key={j.id} className="card-hover flex flex-col">
               <CardContent className="flex flex-1 flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <Link href={`/dashboard/recruiter/jobs/${j.id}`} className="font-semibold leading-snug hover:underline">

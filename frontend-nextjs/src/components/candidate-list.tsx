@@ -90,7 +90,7 @@ export function CandidateList({ jobId, jobTitle }: { jobId: string; jobTitle: st
   const rows = list.data?.items ?? [];
 
   return (
-    <div className="space-y-3">
+    <div className="stagger space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />

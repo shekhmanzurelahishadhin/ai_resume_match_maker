@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Your <span className="text-gradient">overview</span></h1>
             <p className="text-sm text-muted-foreground">
               Your hiring pipeline at a glance.
             </p>
@@ -122,7 +122,7 @@ export default async function DashboardPage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="stagger grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <StatCard icon={Briefcase} label={`Open jobs (of ${stats.jobCount})`} value={stats.activeJobCount} accent="emerald" />
           <StatCard icon={Users} label="Matched candidates" value={stats.candidateCount} accent="teal" />
           <StatCard
@@ -139,9 +139,9 @@ export default async function DashboardPage() {
           />
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-4">
+        <div className="stagger grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Recent jobs</CardTitle>
             <Button asChild size="sm" variant="ghost">
               <Link href="/dashboard/recruiter/jobs">View all</Link>
@@ -159,7 +159,7 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y">
                 {recentJobs.map((job) => (
-                  <li key={job.id} className="py-3 flex items-center justify-between gap-3">
+                  <li key={job.id} className="py-3 -mx-2 px-2 rounded-lg flex items-center justify-between gap-3 transition-colors hover:bg-muted/50">
                     <div className="min-w-0">
                       <Link
                         href={`/dashboard/recruiter/jobs/${job.id}`}
@@ -184,7 +184,7 @@ export default async function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Latest applications</CardTitle>
             <Button asChild size="sm" variant="ghost">
               <Link href="/dashboard/recruiter/applicants">View all</Link>
@@ -200,7 +200,7 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y">
                 {recentApplications.map((a) => (
-                  <li key={a.id} className="py-3 flex items-center justify-between gap-3">
+                  <li key={a.id} className="py-3 -mx-2 px-2 rounded-lg flex items-center justify-between gap-3 transition-colors hover:bg-muted/50">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{a.candidateName}</p>
                       <Link
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Overview</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Your <span className="text-gradient">overview</span></h1>
           <p className="text-sm text-muted-foreground">
             Your resumes and best matches at a glance.
           </p>
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="stagger grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard icon={FileText} label="My resumes" value={stats.resumeCount} accent="emerald" />
         <StatCard icon={Send} label="Applications" value={stats.applicationCount} accent="teal" />
         <StatCard icon={Target} label="Matches" value={stats.matchCount} accent="teal" />
@@ -267,9 +267,9 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="stagger grid lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Recent resumes</CardTitle>
             <Button asChild size="sm" variant="ghost">
               <Link href="/dashboard/seeker/resumes">View all</Link>
@@ -285,7 +285,7 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y">
                 {recentResumes.map((r) => (
-                  <li key={r.id} className="py-3 flex items-center justify-between gap-3">
+                  <li key={r.id} className="py-3 -mx-2 px-2 rounded-lg flex items-center justify-between gap-3 transition-colors hover:bg-muted/50">
                     <div className="min-w-0">
                       <Link
                         href={`/dashboard/seeker/resumes/${r.id}`}
@@ -308,7 +308,7 @@ export default async function DashboardPage() {
         </Card>
 
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base">Top matches</CardTitle>
             <Button asChild size="sm" variant="ghost">
               <Link href="/dashboard/seeker/matches">View all</Link>
@@ -324,7 +324,7 @@ export default async function DashboardPage() {
             ) : (
               <ul className="divide-y">
                 {topMatches.map((m) => (
-                  <li key={m.id} className="py-3 flex items-center justify-between gap-3">
+                  <li key={m.id} className="py-3 -mx-2 px-2 rounded-lg flex items-center justify-between gap-3 transition-colors hover:bg-muted/50">
                     <div className="min-w-0">
                       <Link
                         href={`/dashboard/jobs/${m.jobPost.id}`}

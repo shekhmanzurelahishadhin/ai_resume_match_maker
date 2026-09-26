@@ -72,7 +72,7 @@ export default function SeekerApplicationsPage() {
       </Tabs>
 
       {apps.isLoading ? (
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-28 rounded-xl" />
           ))}
@@ -84,9 +84,9 @@ export default function SeekerApplicationsPage() {
           description="Browse open jobs and apply with one of your resumes."
         />
       ) : (
-        <div className="space-y-3">
+        <div className="stagger space-y-3">
           {rows.map((a) => (
-            <Card key={a.id}>
+            <Card key={a.id} className="card-hover">
               <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">

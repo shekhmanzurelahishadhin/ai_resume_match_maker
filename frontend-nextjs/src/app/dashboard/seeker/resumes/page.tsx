@@ -50,7 +50,7 @@ export default async function SeekerResumesPage() {
             description="Upload your first PDF above to start matching against active jobs."
           />
         ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="stagger grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {resumes.map((r) => (
               <ResumeCard key={r.id} resume={r} />
             ))}

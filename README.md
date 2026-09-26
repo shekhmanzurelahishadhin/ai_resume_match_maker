@@ -20,6 +20,220 @@ This repository contains BOTH halves of the production system:
 
 ---
 
+## ✨ Features
+
+| | Job seekers | Recruiters |
+|---|---|---|
+| 🧠 **AI parsing** | Upload a PDF resume; skills, experience and seniority are extracted (Groq / Hugging Face, with a dictionary fallback) | See structured candidate profiles — never raw resume text |
+| 🎯 **Match scoring** | 0–100% fit score for every open job, with matched and missing skills | Candidates ranked by match % for each job |
+| 📝 **Resume builder** | Themed templates, live preview, AI enhance and tailor-to-job, version history, PDF/DOCX export | — |
+| 📨 **Applications** | Apply in one click and track status | Review applicants and move them through the pipeline |
+| 💬 **Messaging** | Chat with recruiters | Contact top candidates directly |
+| 🔔 **Notifications** | New matches, messages and daily digests (in-app, push, email) | New applicants and candidate matches |
+| 🌗 **Modern UI** | Light and dark mode, animated transitions, responsive down to phone width | Same |
+
+### UI and UX
+
+- **Light and dark themes**: follows the system theme by default, with an animated sun/moon toggle in the header, sidebar and auth pages.
+- **Motion**: page transitions between dashboard routes, staggered card entrances, count-up stat numbers, a spring-animated active pill in the sidebar, hover lift on cards, and animated gradients and blobs on the landing and auth pages.
+- **Accessibility**: every animation respects `prefers-reduced-motion`.
+- **Responsive**: sticky frosted-glass headers, a drawer sidebar on mobile, and a two-column stat grid on phones.
+
+## 📸 Screenshots
+
+Every screen is shown in **light** and **dark** mode. The images live in [`docs/screenshots/`](docs/screenshots).
+
+### Public site
+
+**Landing page — animated hero with a live match preview**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/01-landing.png" alt="Landing page — animated hero with a live match preview (light)" /> | <img src="docs/screenshots/dark/01-landing.png" alt="Landing page — animated hero with a live match preview (dark)" /> |
+
+**Feature overview**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/02-landing-features.png" alt="Feature overview (light)" /> | <img src="docs/screenshots/dark/02-landing-features.png" alt="Feature overview (dark)" /> |
+
+**Sign in — split-screen layout with animated brand panel**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/03-login.png" alt="Sign in — split-screen layout with animated brand panel (light)" /> | <img src="docs/screenshots/dark/03-login.png" alt="Sign in — split-screen layout with animated brand panel (dark)" /> |
+
+**Register — choose job seeker or recruiter**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/04-register.png" alt="Register — choose job seeker or recruiter (light)" /> | <img src="docs/screenshots/dark/04-register.png" alt="Register — choose job seeker or recruiter (dark)" /> |
+
+### Job seeker
+
+**Dashboard — animated stat counters, recent resumes and top matches**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/10-seeker-dashboard.png" alt="Dashboard — animated stat counters, recent resumes and top matches (light)" /> | <img src="docs/screenshots/dark/10-seeker-dashboard.png" alt="Dashboard — animated stat counters, recent resumes and top matches (dark)" /> |
+
+**Find jobs — search and filter by work mode, type and level, with a match score on every card**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/11-find-jobs.png" alt="Find jobs — search and filter by work mode, type and level, with a match score on every card (light)" /> | <img src="docs/screenshots/dark/11-find-jobs.png" alt="Find jobs — search and filter by work mode, type and level, with a match score on every card (dark)" /> |
+
+**Job detail — your match %, matched skills and skills to learn, one-click apply**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/12-job-detail.png" alt="Job detail — your match %, matched skills and skills to learn, one-click apply (light)" /> | <img src="docs/screenshots/dark/12-job-detail.png" alt="Job detail — your match %, matched skills and skills to learn, one-click apply (dark)" /> |
+
+**My matches — sortable table with a minimum-match filter**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/13-matches.png" alt="My matches — sortable table with a minimum-match filter (light)" /> | <img src="docs/screenshots/dark/13-matches.png" alt="My matches — sortable table with a minimum-match filter (dark)" /> |
+
+**Applications — track every application's status**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/14-applications.png" alt="Applications — track every application's status (light)" /> | <img src="docs/screenshots/dark/14-applications.png" alt="Applications — track every application's status (dark)" /> |
+
+**My resumes — upload PDFs and watch parsing status**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/15-my-resumes.png" alt="My resumes — upload PDFs and watch parsing status (light)" /> | <img src="docs/screenshots/dark/15-my-resumes.png" alt="My resumes — upload PDFs and watch parsing status (dark)" /> |
+
+**Resume analysis — AI-extracted skills grouped by category**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/16-resume-analysis.png" alt="Resume analysis — AI-extracted skills grouped by category (light)" /> | <img src="docs/screenshots/dark/16-resume-analysis.png" alt="Resume analysis — AI-extracted skills grouped by category (dark)" /> |
+
+**Resume builder — all generated resumes**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/17-resume-builder.png" alt="Resume builder — all generated resumes (light)" /> | <img src="docs/screenshots/dark/17-resume-builder.png" alt="Resume builder — all generated resumes (dark)" /> |
+
+**Template gallery — themed resume templates**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/18-template-gallery.png" alt="Template gallery — themed resume templates (light)" /> | <img src="docs/screenshots/dark/18-template-gallery.png" alt="Template gallery — themed resume templates (dark)" /> |
+
+**Resume editor — form editing with a live preview, AI tailor and export**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/19-resume-editor.png" alt="Resume editor — form editing with a live preview, AI tailor and export (light)" /> | <img src="docs/screenshots/dark/19-resume-editor.png" alt="Resume editor — form editing with a live preview, AI tailor and export (dark)" /> |
+
+**Full-page resume preview**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/20-resume-preview.png" alt="Full-page resume preview (light)" /> | <img src="docs/screenshots/dark/20-resume-preview.png" alt="Full-page resume preview (dark)" /> |
+
+**Version history**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/21-version-history.png" alt="Version history (light)" /> | <img src="docs/screenshots/dark/21-version-history.png" alt="Version history (dark)" /> |
+
+**Messages — chat with recruiters**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/22-messages.png" alt="Messages — chat with recruiters (light)" /> | <img src="docs/screenshots/dark/22-messages.png" alt="Messages — chat with recruiters (dark)" /> |
+
+**Notifications**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/23-notifications.png" alt="Notifications (light)" /> | <img src="docs/screenshots/dark/23-notifications.png" alt="Notifications (dark)" /> |
+
+**Settings — profile, notification preferences, data export**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/24-settings.png" alt="Settings — profile, notification preferences, data export (light)" /> | <img src="docs/screenshots/dark/24-settings.png" alt="Settings — profile, notification preferences, data export (dark)" /> |
+
+### Recruiter
+
+**Recruiter dashboard — hiring pipeline at a glance**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/30-recruiter-dashboard.png" alt="Recruiter dashboard — hiring pipeline at a glance (light)" /> | <img src="docs/screenshots/dark/30-recruiter-dashboard.png" alt="Recruiter dashboard — hiring pipeline at a glance (dark)" /> |
+
+**My jobs**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/31-recruiter-jobs.png" alt="My jobs (light)" /> | <img src="docs/screenshots/dark/31-recruiter-jobs.png" alt="My jobs (dark)" /> |
+
+**Job detail — ranked matched candidates with matched/missing skills**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/32-recruiter-job-candidates.png" alt="Job detail — ranked matched candidates with matched/missing skills (light)" /> | <img src="docs/screenshots/dark/32-recruiter-job-candidates.png" alt="Job detail — ranked matched candidates with matched/missing skills (dark)" /> |
+
+**Post a job**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/33-post-job.png" alt="Post a job (light)" /> | <img src="docs/screenshots/dark/33-post-job.png" alt="Post a job (dark)" /> |
+
+**Applicants — review and update application status**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/34-applicants.png" alt="Applicants — review and update application status (light)" /> | <img src="docs/screenshots/dark/34-applicants.png" alt="Applicants — review and update application status (dark)" /> |
+
+**Candidates — search every matched candidate across jobs**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/35-candidates.png" alt="Candidates — search every matched candidate across jobs (light)" /> | <img src="docs/screenshots/dark/35-candidates.png" alt="Candidates — search every matched candidate across jobs (dark)" /> |
+
+**Recruiter messaging**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/36-recruiter-messages.png" alt="Recruiter messaging (light)" /> | <img src="docs/screenshots/dark/36-recruiter-messages.png" alt="Recruiter messaging (dark)" /> |
+
+### Mobile
+
+**Landing page on a phone**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/05-mobile-landing.png" alt="Landing page on a phone (light)" width="260" /> | <img src="docs/screenshots/dark/05-mobile-landing.png" alt="Landing page on a phone (dark)" width="260" /> |
+
+**Dashboard on a phone**
+
+| Light | Dark |
+|:---:|:---:|
+| <img src="docs/screenshots/light/25-mobile-dashboard.png" alt="Dashboard on a phone (light)" width="260" /> | <img src="docs/screenshots/dark/25-mobile-dashboard.png" alt="Dashboard on a phone (dark)" width="260" /> |
+
+### Demo accounts (local seed)
+
+`php artisan db:seed` creates these accounts in a `local` environment:
+
+| Role | Email | Password |
+|---|---|---|
+| Job seeker | `seeker@example.com` | `password123` |
+| Recruiter | `recruiter@example.com` | `password123` |
+
+### Regenerating screenshots
+
+The screenshots were taken at 1440×900 (desktop) and 390×844 @2x (mobile) using headless Chrome against a local dev server with the seeded data. Contact details on the sample resume were replaced with placeholder data before capture.
+
+---
+
 ## 1. Architecture
 
 | Layer | Backend (Laravel) | Frontend (Next.js) |
