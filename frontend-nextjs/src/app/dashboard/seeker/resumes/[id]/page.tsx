@@ -1,5 +1,5 @@
 // Seeker → Resume detail. Shows extracted skills (categorized), experience years,
-// list of matches with match %, AI source badge.
+// list of matches with match %, AI source badge, and apply / application status.
 
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +14,8 @@ import { AiSourceBadge } from "@/components/ai-source-badge";
 import { EmptyState } from "@/components/empty-state";
 import { ResumeStatusBadge } from "@/components/resume-status-badge";
 import { ResumeStatusWatcher } from "@/components/resume-status-watcher";
+import { MatchApplyAction } from "@/components/jobs/match-apply-action";
+import type { Application } from "@/lib/jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +39,13 @@ interface ResumeMatch {
   matchedSkills: string[];
   missingSkills: string[];
   analyzedAt: string | null;
-  job?: { id: string; title: string; recruiterName: string | null };
+  job?: {
+    id: string;
+    title: string;
+    recruiterName: string | null;
+    company?: string | null;
+    isActive?: boolean | null;
+  };
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -56,15 +64,20 @@ export default async function ResumeDetailPage({
   const { id } = await params;
 
   // Ownership is enforced by the API policy; a 403/404 arrives here as null.
-  const [detail, matchPage] = await Promise.all([
+  const [detail, matchPage, applicationPage] = await Promise.all([
     apiGetOrNull<{ resume: ResumeDetail }>(`resumes/${id}`),
     apiGetOrNull<Paginated<ResumeMatch>>(`resumes/${id}/matches?pageSize=100`),
+    apiGetOrNull<Paginated<Application>>(`applications?pageSize=100`),
   ]);
 
   const resume = detail?.resume;
   if (!resume) notFound();
 
   const matches = matchPage?.items ?? [];
+  // Latest application per job, to show "Applied" instead of an Apply button.
+  const applicationByJob = new Map(
+    (applicationPage?.items ?? []).filter((a) => a.job).map((a) => [a.job!.id, a]),
+  );
   const skills = resume.skills ?? [];
   const categories = resume.skillCategories ?? {};
   const skillSource = resume.skillsSource ?? "fallback";
@@ -208,21 +221,37 @@ export default async function ResumeDetailPage({
                 <li key={m.id} className="py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {m.job?.title}
-                      </p>
+                      {m.job ? (
+                        <Link
+                          href={`/dashboard/jobs/${m.job.id}`}
+                          className="block text-sm font-medium truncate hover:underline"
+                        >
+                          {m.job.title}
+                        </Link>
+                      ) : null}
                       <p className="text-xs text-muted-foreground truncate">
-                        {m.job?.recruiterName} ·{" "}
+                        {m.job?.company || m.job?.recruiterName} ·{" "}
                         {m.analyzedAt
                           ? new Date(m.analyzedAt).toLocaleDateString()
                           : "—"}
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                        {Math.round(m.matchPercentage)}%
-                      </p>
-                      <AiSourceBadge source={m.matchSource} />
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          {Math.round(m.matchPercentage)}%
+                        </p>
+                        <AiSourceBadge source={m.matchSource} />
+                      </div>
+                      {m.job ? (
+                        <MatchApplyAction
+                          jobId={m.job.id}
+                          jobTitle={m.job.title}
+                          resumeId={resume.id}
+                          isActive={m.job.isActive ?? null}
+                          application={applicationByJob.get(m.job.id) ?? null}
+                        />
+                      ) : null}
                     </div>
                   </div>
                   <Progress value={m.matchPercentage} className="h-1.5 mt-2" />

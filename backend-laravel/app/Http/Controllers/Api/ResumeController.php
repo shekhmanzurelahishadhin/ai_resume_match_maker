@@ -114,7 +114,7 @@ class ResumeController extends Controller
         ['page' => $page, 'pageSize' => $pageSize] = $this->parsePagination($request, 15);
 
         $query = JobMatch::where('resume_id', $resume->id)
-            ->with(['jobPost:id,title,recruiter_id', 'jobPost.recruiter:id,name'])
+            ->with(['jobPost:id,title,company,is_active,recruiter_id', 'jobPost.recruiter:id,name'])
             ->orderByDesc('match_percentage');
         $total = $query->count();
         $items = $query->skip(($page - 1) * $pageSize)->take($pageSize)->get();

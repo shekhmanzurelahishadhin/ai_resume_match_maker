@@ -25,6 +25,11 @@ class MatchResource extends JsonResource
                 'recruiterName' => $this->jobPost->relationLoaded('recruiter')
                     ? $this->jobPost->recruiter?->name
                     : null,
+                // Only present when the query selected the column.
+                'company' => $this->jobPost->getAttribute('company'),
+                'isActive' => array_key_exists('is_active', $this->jobPost->getAttributes())
+                    ? (bool) $this->jobPost->is_active
+                    : null,
             ]),
             'resume' => $this->when($this->relationLoaded('resume'), fn () => [
                 'id' => $this->resume->id,
